@@ -40,8 +40,7 @@ pipeline {
     agent any
 
     environment { 
-        WORKING_DIR = "C:/ProgramData/Jenkins/.jenkins/workspace/PRJob/${PR_REPO_NAME}/${PR_BRANCH}"
-        UNITY_EXECUTABLE = "${sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKSPACE}\' executable-path", returnStdout: true)}"
+        WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
     }   
@@ -92,9 +91,11 @@ pipeline {
 
                 echo "Identifying Unity version..."
                 script {
+                    env.UNITY_EXECUTABLE = "${sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
+                    
                     if (!fileExists(UNITY_EXECUTABLE)){
-                        def version = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKSPACE}\' version", returnStdout: true)
-                        def revision = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKSPACE}\' version", returnStdout: true)
+                        def version = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
+                        def revision = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
 
                         echo "Missing Unity Editor version ${version}. Installing now..."
                         sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
