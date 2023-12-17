@@ -15,24 +15,24 @@ def tryMerge(destination) {
 }
 
 // Retrieves the full commit hash from Bitbucket Cloud API, since the webhook only gives us the short version.
-def getFullCommitHash() {
-    fullCommitHash = sh(script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_bitbucket_commit_hash.py\' ${PR_COMMIT}", returnStdout: true)
+def getFullCommitHash(workspace) {
+    fullCommitHash = sh(script: "python \'${workspace}/python/get_bitbucket_commit_hash.py\' ${PR_COMMIT}", returnStdout: true)
     echo fullCommitHash
 }
 
 // Sends a build status to Bitbucket Cloud API.
-def sendBuildStatus(state) {
-    sh "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/send_bitbucket_build_status.py\' ${fullCommitHash} ${state}"
+def sendBuildStatus(workspace, state) {
+    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${fullCommitHash} ${state}"
 }
 
 // Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
-def sendTestReport(testMode) {
-    sh "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/create_bitbucket_test_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/test_results\' \'${testMode}\'"
+def sendTestReport(workspace, testMode) {
+    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/test_results\' \'${testMode}\'"
 }
 
 // Sends a code coverage report to Bitbucket Cloud API.
-def sendCoverageReport() {
-    sh "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/create_bitbucket_codecoverage_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/coverage_results/Report\'"
+def sendCoverageReport(workspace) {
+    sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/coverage_results/Report\'"
 }
 
 
@@ -57,8 +57,8 @@ pipeline {
             steps {
                 echo "Sending \'In Progress\' status to Bitbucket..."
                 script {
-                    getFullCommitHash()
-                    sendBuildStatus("INPROGRESS")
+                    getFullCommitHash(WORKSPACE)
+                    sendBuildStatus(WORKSPACE, "INPROGRESS")
                 }
 
                 echo "Cleaning workspace..."
@@ -91,11 +91,11 @@ pipeline {
 
                 echo "Identifying Unity version..."
                 script {
-                    env.UNITY_EXECUTABLE = "${sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
-                    
+                    env.UNITY_EXECUTABLE = "${sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
+
                     if (!fileExists(UNITY_EXECUTABLE)){
-                        def version = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
-                        def revision = sh (script: "python \'C:/ProgramData/Jenkins/.jenkins/workspace/python scripts/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
+                        def version = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
+                        def revision = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
 
                         echo "Missing Unity Editor version ${version}. Installing now..."
                         sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
@@ -128,7 +128,7 @@ pipeline {
                 }
 
                 echo "Sending EditMode test results to Bitbucket..."
-                sendTestReport("EditMode")
+                sendTestReport(WORKSPACE, "EditMode")
             }
         }
         // Runs the project's PlayMode tests, and then generates a code coverage report.
@@ -150,12 +150,16 @@ pipeline {
                             -enableCodeCoverage \
                             -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
                             -coverageOptions \"generateAdditionalMetrics;dontClear\"""", returnStatus: true)
+
+                            if (exitCode == 3 || exitCode == 1) {
+                                sh "exit ${exitCode}"
+                            }
                         }
                     }
                 }
 
                 echo "Sending PlayMode test results to Bitbucket..."
-                sendTestReport("PlayMode")
+                sendTestReport(WORKSPACE, "PlayMode")
             }
         }
         // Merges the two coverage reports from the EditMode and PlayMode (editor) reports into one.
@@ -184,7 +188,7 @@ pipeline {
                 }
                 
                 echo "Sending code coverage report to Bitbucket..."
-                sendCoverageReport()
+                sendCoverageReport(WORKSPACE)
             }
         }
     }
@@ -192,13 +196,13 @@ pipeline {
     // When the pipeline finishes, sends the build status to Bitbucket.
     post {
         success {
-            sendBuildStatus("SUCCESSFUL")
+            sendBuildStatus(WORKSPACE, "SUCCESSFUL")
         }
         failure {
-            sendBuildStatus("FAILED")
+            sendBuildStatus(WORKSPACE, "FAILED")
         }
         aborted {
-            sendBuildStatus("STOPPED")
+            sendBuildStatus(WORKSPACE, "STOPPED")
         }
     }
 }
