@@ -40,10 +40,27 @@ pipeline {
     agent any
 
     environment { 
-        WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
+        WORKING_DIR = "${WORKSPACE}/PRJob/${BRANCH_NAME}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
-    }   
+    }
+
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [expressionType: 'JSONPath', key: 'PR_BRANCH', value: '$.pullrequest.source.branch.name'],
+                [expressionType: 'JSONPath', key: 'PR_REPO_HTML', value: '$.repository.links.self.href'],
+                [expressionType: 'JSONPath', key: 'PR_REPO_NAME', value: '$.repository.name'],
+                [expressionType: 'JSONPath', key: 'PR_DESTINATION_BRANCH', value: '$.pullrequest.destination.branch.name'],
+                [expressionType: 'JSONPath', key: 'PR_COMMIT', value: '$.pullrequest.source.commit.hash'],
+                [expressionType: 'JSONPath', key: 'PR_PROJECT', value: '$.repository.full_name']
+            ],
+            causeString: 'Triggered on $PR_BRANCH',
+            tokenCredentialId: 'generic-webhook-token',
+            printContributedVariables: true,
+            silentResponse: false,
+        )
+    }  
 
     stages {
         // Prepares the workspace for the build by telling Bitbucket the build is in progress, cleaning the working directory,
@@ -56,6 +73,7 @@ pipeline {
             }
             steps {
                 echo "Sending \'In Progress\' status to Bitbucket..."
+                echo "Workspace: ${WORKSPACE}\n Payload: ${BITBUCKET_PAYLOAD}"
                 script {
                     getFullCommitHash(WORKSPACE)
                     sendBuildStatus(WORKSPACE, "INPROGRESS")
