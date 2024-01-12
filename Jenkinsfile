@@ -56,6 +56,7 @@ pipeline {
                 [expressionType: 'JSONPath', key: 'PR_PROJECT', value: '$.repository.full_name']
             ],
             causeString: 'Triggered on $PR_BRANCH',
+            token: 'rollaballmulti',
             tokenCredentialId: 'generic-webhook-token',
             printContributedVariables: true,
             silentResponse: false,
