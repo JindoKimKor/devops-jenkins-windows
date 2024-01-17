@@ -191,6 +191,21 @@ pipeline {
                 sendCoverageReport(WORKSPACE)
             }
         }
+        // Builds the project and saves it.
+        stage('Build Project') {
+            steps {
+                echo "Building Unity project..."
+                sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+                dir("${WORKING_DIR}") {
+                    sh """\"${UNITY_EXECUTABLE}\" \
+                    -quit \
+                    -batchmode \
+                    -nographics \
+                    -buildTarget WebGL \
+                    -executeMethod Builder.BuildWebGL"""
+                }
+            }
+        }
     }
 
     // When the pipeline finishes, sends the build status to Bitbucket.
