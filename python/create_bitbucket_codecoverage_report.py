@@ -45,7 +45,7 @@ report = json.dumps( {
     "details": "*Only includes line coverage.",
     "report_type": "COVERAGE",
     "reporter": "Jenkins",
-    "link": f"http://jenkins.varlab.org/job/{job_name[0]}/job/{job_name[1]}/Reports/",
+    "link": f"http://jenkins.varlab.org/job/{job_name[0]}/job/{job_name[1]}/{build_id}/Reports/",
     "data": [
         {
             "type": "PERCENTAGE",
