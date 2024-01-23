@@ -69,5 +69,9 @@ report = json.dumps( {
     ]
 } )
 
-response = requests.put(url, data=report, headers=headers)
-response.raise_for_status()
+try:
+    response = requests.put(url, data=report, headers=headers)
+    response.raise_for_status()
+except requests.exceptions.RequestException as e:
+    print(f"Initial Request: {e.request}")
+    print(f"Response Error: {e.response}")
