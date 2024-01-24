@@ -49,9 +49,9 @@ def get_number_of_tests_failed(result_file):
     return results
 
 # Request variables:
-result = get_test_result(f'{args["test-results-path"]}/{results_file_name}')
 failed_tests = get_number_of_tests_failed(f'{args["test-results-path"]}/{results_file_name}')
 dataBool = True if (int(failed_tests['total_failed']) == 0) else False
+result = "PASSED" if (int(failed_tests['total_failed']) == 0) else "FAILED"
 
 # Sending the report to Bitbucket Cloud API.
 report = json.dumps( {
@@ -73,5 +73,6 @@ try:
     response = requests.put(url, data=report, headers=headers)
     response.raise_for_status()
 except requests.exceptions.RequestException as e:
-    print(f"Initial Request: {e.request}")
-    print(f"Response Error: {e.response}")
+    print(f"Initial Request: {e.request.body}")
+    print(f"Response Error: {json.dumps(e.response.json())}")
+    exit(1)
