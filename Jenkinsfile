@@ -35,6 +35,14 @@ def sendCoverageReport(workspace) {
     sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/coverage_results/Report\'"
 }
 
+// Checks if an exit code thrown during a test stage should fail the PR Pipeline. ExitCode 2 means failing tests, which we want to report back to Bitbucket
+// without failing the entire pipeline.
+def checkIfTestStageExitCodeShouldExit(exitCode) {
+    if (exitCode == 3 || exitCode == 1) {
+        sh "exit ${exitCode}"
+    }
+}
+
 
 pipeline {
     agent any
@@ -114,7 +122,8 @@ pipeline {
                 dir ("${WORKING_DIR}") {
                     sh "mkdir test_results"
                     sh "mkdir coverage_results"
-                    sh """\"${UNITY_EXECUTABLE}\" \
+                    script {
+                        def exitCode = sh (script: """\"${UNITY_EXECUTABLE}\" \
                         -runTests \
                         -batchmode \
                         -projectPath . \
@@ -124,7 +133,11 @@ pipeline {
                         -debugCodeOptimization \
                         -enableCodeCoverage \
                         -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
-                        -coverageOptions \"generateAdditionalMetrics;dontClear\""""
+                        -coverageOptions \"generateAdditionalMetrics;dontClear\"""", returnStatus: true)
+
+                        checkIfTestStageExitCodeShouldExit(exitCode)
+                    }
+                    
                 }
 
                 echo "Sending EditMode test results to Bitbucket..."
@@ -151,9 +164,7 @@ pipeline {
                             -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
                             -coverageOptions \"generateAdditionalMetrics;dontClear\"""", returnStatus: true)
 
-                            if (exitCode == 3 || exitCode == 1) {
-                                sh "exit ${exitCode}"
-                            }
+                            checkIfTestStageExitCodeShouldExit(exitCode)
                         }
                     }
                 }
