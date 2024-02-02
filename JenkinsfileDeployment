@@ -1,0 +1,116 @@
+// Sends a build status to Bitbucket Cloud API.
+def sendBuildStatus(workspace, state, commitHash) {
+    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state}"
+}
+
+pipeline {
+    agent any
+
+    environment {
+        WORKING_DIR = "${WORKSPACE}/Deployment"
+        JOB_REPO = "${PR_REPO_HTML}"
+        BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
+    }
+
+    stages {
+        stage ('Prepare Workspace') {
+            environment {
+                REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
+            }
+            steps {
+                script {
+                    if (!fileExists(WORKING_DIR)) {
+                        echo "First time running pipeline. Cloning main branch..."
+                        sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                    }
+                }
+                
+                dir ("${WORKING_DIR}") {
+                    echo "Pulling latest version of default branch..."
+                    sh "git pull"
+                    script {
+                        env.LATEST_COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
+                    }
+                }
+
+                echo "Sending \'In Progress\' status to Bitbucket..."
+                sendBuildStatus(WORKSPACE, "INPROGRESS", LATEST_COMMIT_HASH)
+
+                echo "Identifying Unity version..."
+                script {
+                    env.UNITY_EXECUTABLE = "${sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
+
+                    if (!fileExists(UNITY_EXECUTABLE)){
+                        def version = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
+                        def revision = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
+
+                        echo "Missing Unity Editor version ${version}. Installing now..."
+                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
+
+                        echo "Installing WebGL Build Support..."
+                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install-modules --version ${version} -m webgl"
+                    }
+                }
+            }
+        }
+        stage ('EditMode Tests') {
+            steps {
+                echo "Running EditMode tests..."
+                dir ("${WORKING_DIR}") {
+                    sh """\"${UNITY_EXECUTABLE}\" \
+                        -runTests \
+                        -batchmode \
+                        -projectPath . \
+                        -testPlatform EditMode \
+                        -logFile \"${WORKING_DIR}/Logs/editmode-tests.log\" """
+                }
+            }
+        }
+        stage ('PlayMode Tests In Editor'){
+            steps {
+                echo "Running PlayMode tests..."
+                dir ("${WORKING_DIR}") {
+                    retry (5) {
+                        sh """\"${UNITY_EXECUTABLE}\" \
+                            -runTests \
+                            -batchmode \
+                            -projectPath . \
+                            -testPlatform PlayMode \
+                            -logFile \"${WORKING_DIR}/Logs/playmode-tests.log\" """
+                    }
+                }
+            }
+        }
+        stage ('Build Project') {
+            steps {
+                echo "Building Unity project for WebGL..."
+                sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+                dir("${WORKING_DIR}") {
+                    sh """\"${UNITY_EXECUTABLE}\" \
+                    -quit \
+                    -batchmode \
+                    -nographics \
+                    -buildTarget WebGL \
+                    -executeMethod Builder.BuildWebGL"""
+                }
+            }
+        }
+        stage ('Deploy Build') {
+            steps {
+                echo "Deploying build to LTI web server..."
+            }
+        }
+    }
+
+    post {
+        success {
+            sendBuildStatus(WORKSPACE, "SUCCESSFUL", LATEST_COMMIT_HASH)
+        }
+        failure {
+            sendBuildStatus(WORKSPACE, "FAILED", LATEST_COMMIT_HASH)
+        }
+        aborted {
+            sendBuildStatus(WORKSPACE, "STOPPED", LATEST_COMMIT_HASH)
+        }
+    }
+}
