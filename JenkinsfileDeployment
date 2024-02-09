@@ -98,6 +98,12 @@ pipeline {
         stage ('Deploy Build') {
             steps {
                 echo "Deploying build to LTI web server..."
+
+                script {
+                    def folderName = "${JOB_NAME}".split('/').first()
+                    sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${folderName}\""
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${folderName}\""
+                }
             }
         }
     }
