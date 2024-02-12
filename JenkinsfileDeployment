@@ -13,6 +13,16 @@ pipeline {
     }
 
     stages {
+        stage ('Delete Merged Branch') {
+            steps {
+                script {
+                    def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
+                    branch_path = branch_path.trim()
+                    sh "rm -r \"${branch_path}\""
+                    sh "rm -r \"${branch_path}@tmp\""
+                }
+            }
+        }
         stage ('Prepare Workspace') {
             environment {
                 REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
