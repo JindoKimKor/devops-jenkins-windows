@@ -47,6 +47,10 @@ def checkIfTestStageExitCodeShouldExit(exitCode) {
 pipeline {
     agent any
 
+    tools {
+        dotnetsdk 'dotnet-core-2.1.202'
+    }
+
     environment { 
         WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
@@ -120,7 +124,7 @@ pipeline {
             steps {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
-                    sh "mkdir test_results"
+                    sh "mkdir -p test_results/editmode-report"
                     sh "mkdir coverage_results"
                     script {
                         def exitCode = sh (script: """\"${UNITY_EXECUTABLE}\" \
@@ -140,6 +144,23 @@ pipeline {
                     
                 }
 
+                sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
+                    --resultsPath=\"${WORKING_DIR}/test_results\" \
+                    --resultXMLName=editmode-results.xml \
+                    --unityLogName=editmode-tests.log \
+                    --reportdirpath=\"${WORKING_DIR}/test_results/editmode-report\"""", returnStatus: true)
+
+                script {
+                    env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
+
+                    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
+                    \"sudo mkdir -p /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report \
+                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report\""""
+
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/test_results/editmode-report/*\" \
+                    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report\""
+                }
+
                 echo "Sending EditMode test results to Bitbucket..."
                 sendTestReport(WORKSPACE, "EditMode")
             }
@@ -150,6 +171,7 @@ pipeline {
             steps {
                 echo "Running PlayMode tests in Editor environment..."
                 dir ("${WORKING_DIR}") {
+                    sh "mkdir -p test_results/playmode-report"
                     retry (5) {
                         script {
                             def exitCode = sh (script: """\"${UNITY_EXECUTABLE}\" \
@@ -167,6 +189,21 @@ pipeline {
                             checkIfTestStageExitCodeShouldExit(exitCode)
                         }
                     }
+                }
+
+                sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
+                    --resultsPath=\"${WORKING_DIR}/test_results\" \
+                    --resultXMLName=playmode-results.xml \
+                    --unityLogName=editor-playmode-tests.log \
+                    --reportdirpath=\"${WORKING_DIR}/test_results/playmode-report\"""", returnStatus: true)
+                
+                script {
+                    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
+                    \"sudo mkdir -p /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report \
+                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report\""""
+
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/test_results/playmode-report/*\" \
+                    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report\""
                 }
 
                 echo "Sending PlayMode test results to Bitbucket..."
@@ -194,7 +231,7 @@ pipeline {
                         keepAll: true,
                         reportDir: "coverage_results/Report",
                         reportFiles: 'index.html',
-                        reportName: 'Reports',
+                        reportName: 'Coverage',
                         reportTitles: 'Code Coverage'])
                 }
                 

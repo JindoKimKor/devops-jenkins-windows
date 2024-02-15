@@ -18,24 +18,17 @@ args = vars(parser.parse_args())
 access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
 build_id = os.getenv('BUILD_ID')
 pr_repo = os.getenv('JOB_REPO')
+folder_name = os.getenv('FOLDER_NAME')
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["commit"]}/reports/{args["test-mode"]}-test-report'
-results_file_name = "editmode-results.xml" if (args["test-mode"] == 'EditMode') else "playmode-results.xml"
+results_file_name = "editmode" if (args["test-mode"] == 'EditMode') else "playmode"
 
 headers = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "Authorization": "Bearer " + access_token
 }
-
-# Parses the overall test run result from the results XML file.
-# A run will always be unsuccessful if minimum 1 test fails.
-def get_test_result(result_file):
-    result = ""
-    tree_root = ET.parse(result_file).getroot()
-    result = tree_root.attrib['result'].upper()
-    return result
 
 # Parses the number of tests failed from the results XML file.
 def get_number_of_tests_failed(result_file):
@@ -49,7 +42,7 @@ def get_number_of_tests_failed(result_file):
     return results
 
 # Request variables:
-failed_tests = get_number_of_tests_failed(f'{args["test-results-path"]}/{results_file_name}')
+failed_tests = get_number_of_tests_failed(f'{args["test-results-path"]}/{results_file_name}-results.xml')
 dataBool = True if (int(failed_tests['total_failed']) == 0) else False
 result = "PASSED" if (int(failed_tests['total_failed']) == 0) else "FAILED"
 
@@ -60,6 +53,7 @@ report = json.dumps( {
     "report_type": "TEST",
     "reporter": "Jenkins",
     "result": f"{result}",
+    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/{results_file_name}-report/TestReport.html",
     "data": [
         {
             "type": "BOOLEAN",
