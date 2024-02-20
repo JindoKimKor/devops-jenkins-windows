@@ -1,7 +1,6 @@
-// Sends a build status to Bitbucket Cloud API.
-def sendBuildStatus(workspace, state, commitHash) {
-    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state}"
-}
+def editMode = "EditMode"
+def playMode = "PlayMode"
+def util
 
 pipeline {
     agent any
@@ -16,6 +15,7 @@ pipeline {
         stage ('Delete Merged Branch') {
             steps {
                 script {
+                    util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
                     sh "rm -r \"${branch_path}\""
@@ -44,22 +44,11 @@ pipeline {
                 }
 
                 echo "Sending \'In Progress\' status to Bitbucket..."
-                sendBuildStatus(WORKSPACE, "INPROGRESS", LATEST_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "INPROGRESS", LATEST_COMMIT_HASH)
 
                 echo "Identifying Unity version..."
                 script {
-                    env.UNITY_EXECUTABLE = "${sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
-
-                    if (!fileExists(UNITY_EXECUTABLE)){
-                        def version = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
-                        def revision = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
-
-                        echo "Missing Unity Editor version ${version}. Installing now..."
-                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
-
-                        echo "Installing WebGL Build Support..."
-                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install-modules --version ${version} -m webgl"
-                    }
+                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, WORKING_DIR)
                 }
             }
         }
@@ -67,12 +56,10 @@ pipeline {
             steps {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
-                    sh """\"${UNITY_EXECUTABLE}\" \
-                        -runTests \
-                        -batchmode \
-                        -projectPath . \
-                        -testPlatform EditMode \
-                        -logFile \"${WORKING_DIR}/Logs/editmode-tests.log\" """
+                    script {
+                        exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, false)
+                        sh "exit ${exitCode}"
+                    }
                 }
             }
         }
@@ -81,12 +68,10 @@ pipeline {
                 echo "Running PlayMode tests..."
                 dir ("${WORKING_DIR}") {
                     retry (5) {
-                        sh """\"${UNITY_EXECUTABLE}\" \
-                            -runTests \
-                            -batchmode \
-                            -projectPath . \
-                            -testPlatform PlayMode \
-                            -logFile \"${WORKING_DIR}/Logs/playmode-tests.log\" """
+                        script {
+                            exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, false)
+                            sh "exit ${exitCode}"
+                        }
                     }
                 }
             }
@@ -96,12 +81,7 @@ pipeline {
                 echo "Building Unity project for WebGL..."
                 sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
                 dir("${WORKING_DIR}") {
-                    sh """\"${UNITY_EXECUTABLE}\" \
-                    -quit \
-                    -batchmode \
-                    -nographics \
-                    -buildTarget WebGL \
-                    -executeMethod Builder.BuildWebGL"""
+                    util.buildProject(UNITY_EXECUTABLE)
                 }
             }
         }
@@ -120,13 +100,19 @@ pipeline {
 
     post {
         success {
-            sendBuildStatus(WORKSPACE, "SUCCESSFUL", LATEST_COMMIT_HASH)
+            script {
+                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", LATEST_COMMIT_HASH)
+            }
         }
         failure {
-            sendBuildStatus(WORKSPACE, "FAILED", LATEST_COMMIT_HASH)
+            script {
+                util.sendBuildStatus(WORKSPACE, "FAILED", LATEST_COMMIT_HASH)
+            }
         }
         aborted {
-            sendBuildStatus(WORKSPACE, "STOPPED", LATEST_COMMIT_HASH)
+            script {
+                util.sendBuildStatus(WORKSPACE, "STOPPED", LATEST_COMMIT_HASH)
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ args = vars(parser.parse_args())
 access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
 build_id = os.getenv('BUILD_ID')
 pr_repo = os.getenv('JOB_REPO')
-job_name = urllib.parse.quote(os.getenv('JOB_NAME')).split("/")
+folder_name = os.getenv('FOLDER_NAME')
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["commit"]}/reports/coverage-report'
@@ -45,7 +45,7 @@ report = json.dumps( {
     "details": "*Only includes line coverage.",
     "report_type": "COVERAGE",
     "reporter": "Jenkins",
-    "link": f"http://jenkins.varlab.org/job/{job_name[0]}/job/{job_name[1]}/{build_id}/Reports/",
+    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/CodeCoverage-report/index.html",
     "data": [
         {
             "type": "PERCENTAGE",

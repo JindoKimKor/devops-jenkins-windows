@@ -22,7 +22,6 @@ folder_name = os.getenv('FOLDER_NAME')
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["commit"]}/reports/{args["test-mode"]}-test-report'
-results_file_name = "editmode" if (args["test-mode"] == 'EditMode') else "playmode"
 
 headers = {
     "Accept": "application/json",
@@ -42,7 +41,7 @@ def get_number_of_tests_failed(result_file):
     return results
 
 # Request variables:
-failed_tests = get_number_of_tests_failed(f'{args["test-results-path"]}/{results_file_name}-results.xml')
+failed_tests = get_number_of_tests_failed(f'{args["test-results-path"]}/{args["test-mode"]}-results.xml')
 dataBool = True if (int(failed_tests['total_failed']) == 0) else False
 result = "PASSED" if (int(failed_tests['total_failed']) == 0) else "FAILED"
 
@@ -53,7 +52,7 @@ report = json.dumps( {
     "report_type": "TEST",
     "reporter": "Jenkins",
     "result": f"{result}",
-    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/{results_file_name}-report/TestReport.html",
+    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/{args['test-mode']}-report/TestReport.html",
     "data": [
         {
             "type": "BOOLEAN",

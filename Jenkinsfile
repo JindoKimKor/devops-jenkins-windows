@@ -1,48 +1,6 @@
-// This will be populated by getFullCommitHash().
-// It's global so the rest of the Bitbucket API request python scripts can access it.
-def fullCommitHash = ""
-
-// Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
-// This is in its own method to avoid pipeline failure if the branch needs updating.
-def isBranchUpToDate(destination) {
-    return sh (script: "git merge-base --is-ancestor origin/${destination} @", returnStatus: true)
-}
-
-// Attempts to merge the destination branch into the current branch.
-// This is in its own method to avoid automatic pipeline failure if there are merge errors. We want to alert the user of the merge errors.
-def tryMerge(destination) {
-    return sh (script: "git merge origin/${destination}", returnStatus: true)
-}
-
-// Retrieves the full commit hash from Bitbucket Cloud API, since the webhook only gives us the short version.
-def getFullCommitHash(workspace) {
-    fullCommitHash = sh(script: "python \'${workspace}/python/get_bitbucket_commit_hash.py\' ${PR_COMMIT}", returnStdout: true)
-    echo fullCommitHash
-}
-
-// Sends a build status to Bitbucket Cloud API.
-def sendBuildStatus(workspace, state) {
-    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${fullCommitHash} ${state}"
-}
-
-// Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
-def sendTestReport(workspace, testMode) {
-    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/test_results\' \'${testMode}\'"
-}
-
-// Sends a code coverage report to Bitbucket Cloud API.
-def sendCoverageReport(workspace) {
-    sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${fullCommitHash}\' \'${WORKING_DIR}/coverage_results/Report\'"
-}
-
-// Checks if an exit code thrown during a test stage should fail the PR Pipeline. ExitCode 2 means failing tests, which we want to report back to Bitbucket
-// without failing the entire pipeline.
-def checkIfTestStageExitCodeShouldExit(exitCode) {
-    if (exitCode == 3 || exitCode == 1) {
-        sh "exit ${exitCode}"
-    }
-}
-
+def editMode = "EditMode"
+def playMode = "PlayMode"
+def util
 
 pipeline {
     agent any
@@ -67,10 +25,12 @@ pipeline {
                 DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
             }
             steps {
-                echo "Sending \'In Progress\' status to Bitbucket..."
                 script {
-                    getFullCommitHash(WORKSPACE)
-                    sendBuildStatus(WORKSPACE, "INPROGRESS")
+                    util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
+
+                    echo "Sending \'In Progress\' status to Bitbucket..."
+                    env.FULL_COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", FULL_COMMIT_HASH)
                 }
 
                 echo "Cleaning workspace..."
@@ -83,13 +43,13 @@ pipeline {
                 
                     echo "Checking if branch is up to date..."
                     script {
-                        if (isBranchUpToDate(DESTINATION_BRANCH) == 0) {
+                        if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
                             echo "Branch is up to date."
                         }
                         else {
                             echo "Branch needs to be updated. Merging destination branch into main..."
                         
-                            if (tryMerge(DESTINATION_BRANCH) == 0) {
+                            if (util.tryMerge(DESTINATION_BRANCH) == 0) {
                                 echo "Merge successful."
                             }
                             else {
@@ -103,18 +63,7 @@ pipeline {
 
                 echo "Identifying Unity version..."
                 script {
-                    env.UNITY_EXECUTABLE = "${sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' executable-path", returnStdout: true)}"
-
-                    if (!fileExists(UNITY_EXECUTABLE)){
-                        def version = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' version", returnStdout: true)
-                        def revision = sh (script: "python \'${WORKSPACE}/python/get_unity_version.py\' \'${WORKING_DIR}\' revision", returnStdout: true)
-
-                        echo "Missing Unity Editor version ${version}. Installing now..."
-                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
-
-                        echo "Installing WebGL Build Support..."
-                        sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install-modules --version ${version} -m webgl"
-                    }
+                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, WORKING_DIR)
                 }
             }
         }
@@ -124,45 +73,20 @@ pipeline {
             steps {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
-                    sh "mkdir -p test_results/editmode-report"
+                    sh "mkdir -p test_results/EditMode-report"
                     sh "mkdir coverage_results"
                     script {
-                        def exitCode = sh (script: """\"${UNITY_EXECUTABLE}\" \
-                        -runTests \
-                        -batchmode \
-                        -projectPath . \
-                        -testPlatform EditMode \
-                        -testResults \"${WORKING_DIR}/test_results/editmode-results.xml\" \
-                        -logFile \"${WORKING_DIR}/test_results/editmode-tests.log\" \
-                        -debugCodeOptimization \
-                        -enableCodeCoverage \
-                        -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
-                        -coverageOptions \"generateAdditionalMetrics;dontClear\"""", returnStatus: true)
+                        def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true)
+                        util.checkIfTestStageExitCodeShouldExit(exitCode)
 
-                        checkIfTestStageExitCodeShouldExit(exitCode)
+                        util.convertTestResultsToHtml(WORKING_DIR, editMode)
+                        env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
+
+                        echo "Sending EditMode test results to Bitbucket..."
+                        util.sendTestReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH, editMode)
                     }
-                    
                 }
-
-                sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
-                    --resultsPath=\"${WORKING_DIR}/test_results\" \
-                    --resultXMLName=editmode-results.xml \
-                    --unityLogName=editmode-tests.log \
-                    --reportdirpath=\"${WORKING_DIR}/test_results/editmode-report\"""", returnStatus: true)
-
-                script {
-                    env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
-
-                    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-                    \"sudo mkdir -p /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report \
-                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report\""""
-
-                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/test_results/editmode-report/*\" \
-                    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/editmode-report\""
-                }
-
-                echo "Sending EditMode test results to Bitbucket..."
-                sendTestReport(WORKSPACE, "EditMode")
             }
         }
         // Runs the project's PlayMode tests, and then generates a code coverage report.
@@ -171,43 +95,20 @@ pipeline {
             steps {
                 echo "Running PlayMode tests in Editor environment..."
                 dir ("${WORKING_DIR}") {
-                    sh "mkdir -p test_results/playmode-report"
+                    sh "mkdir -p test_results/PlayMode-report"
                     retry (5) {
                         script {
-                            def exitCode = sh (script: """\"${UNITY_EXECUTABLE}\" \
-                            -runTests \
-                            -batchmode \
-                            -projectPath . \
-                            -testPlatform PlayMode \
-                            -testResults \"${WORKING_DIR}/test_results/playmode-results.xml\" \
-                            -logFile \"${WORKING_DIR}/test_results/editor-playmode-tests.log\" \
-                            -debugCodeOptimization \
-                            -enableCodeCoverage \
-                            -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
-                            -coverageOptions \"generateAdditionalMetrics;dontClear\"""", returnStatus: true)
+                            def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true)
+                            util.checkIfTestStageExitCodeShouldExit(exitCode)
 
-                            checkIfTestStageExitCodeShouldExit(exitCode)
+                            util.convertTestResultsToHtml(WORKING_DIR, playMode)
+                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
+
+                            echo "Sending PlayMode test results to Bitbucket..."
+                            util.sendTestReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH, playMode)
                         }
                     }
                 }
-
-                sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
-                    --resultsPath=\"${WORKING_DIR}/test_results\" \
-                    --resultXMLName=playmode-results.xml \
-                    --unityLogName=editor-playmode-tests.log \
-                    --reportdirpath=\"${WORKING_DIR}/test_results/playmode-report\"""", returnStatus: true)
-                
-                script {
-                    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-                    \"sudo mkdir -p /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report \
-                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report\""""
-
-                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/test_results/playmode-report/*\" \
-                    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}/Reports/${BUILD_ID}/playmode-report\""
-                }
-
-                echo "Sending PlayMode test results to Bitbucket..."
-                sendTestReport(WORKSPACE, "PlayMode")
             }
         }
         // Merges the two coverage reports from the EditMode and PlayMode (editor) reports into one.
@@ -226,17 +127,13 @@ pipeline {
                     -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics\" \
                     -quit"""
 
-                    publishHTML(target: [allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: "coverage_results/Report",
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage',
-                        reportTitles: 'Code Coverage'])
+                    script {
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/coverage_results/Report", "CodeCoverage")
+
+                        echo "Sending code coverage report to Bitbucket..."
+                        util.sendCoverageReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH)
+                    }   
                 }
-                
-                echo "Sending code coverage report to Bitbucket..."
-                sendCoverageReport(WORKSPACE)
             }
         }
         // Builds the project and saves it.
@@ -245,12 +142,9 @@ pipeline {
                 echo "Building Unity project..."
                 sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
                 dir("${WORKING_DIR}") {
-                    sh """\"${UNITY_EXECUTABLE}\" \
-                    -quit \
-                    -batchmode \
-                    -nographics \
-                    -buildTarget WebGL \
-                    -executeMethod Builder.BuildWebGL"""
+                    script {
+                        util.buildProject(UNITY_EXECUTABLE)
+                    }
                 }
             }
         }
@@ -259,13 +153,19 @@ pipeline {
     // When the pipeline finishes, sends the build status to Bitbucket.
     post {
         success {
-            sendBuildStatus(WORKSPACE, "SUCCESSFUL")
+            script {
+                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", FULL_COMMIT_HASH)
+            }
         }
         failure {
-            sendBuildStatus(WORKSPACE, "FAILED")
+            script {
+                sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
+            }
         }
         aborted {
-            sendBuildStatus(WORKSPACE, "STOPPED")
+            script {
+                sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
+            }
         }
     }
 }
