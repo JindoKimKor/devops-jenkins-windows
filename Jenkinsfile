@@ -159,12 +159,12 @@ pipeline {
         }
         failure {
             script {
-                sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
             }
         }
         aborted {
             script {
-                sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "STOPPED", FULL_COMMIT_HASH)
             }
         }
     }
