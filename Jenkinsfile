@@ -142,8 +142,10 @@ pipeline {
                 echo "Building Unity project..."
                 sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
                 dir("${WORKING_DIR}") {
-                    script {
-                        util.buildProject(UNITY_EXECUTABLE)
+                    retry (3) {
+                        script {
+                            util.buildProject(UNITY_EXECUTABLE)
+                        }
                     }
                 }
             }
