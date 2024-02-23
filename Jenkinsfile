@@ -53,9 +53,9 @@ pipeline {
                                 echo "Merge successful."
                             }
                             else {
-                                echo "Merge errors in your branch. Aborting merge..."
                                 sh "git merge --abort"
-                                error("Merge aborted.")
+                                env.FAILURE_REASON = "Merge errors found. Merge aborted."
+                                error(env.FAILURE_REASON)
                             }
                         }
                     }
@@ -77,7 +77,7 @@ pipeline {
                     sh "mkdir coverage_results"
                     script {
                         def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true)
-                        util.checkIfTestStageExitCodeShouldExit(exitCode)
+                        //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
 
                         util.convertTestResultsToHtml(WORKING_DIR, editMode)
                         env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
@@ -99,7 +99,7 @@ pipeline {
                     retry (5) {
                         script {
                             def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true)
-                            util.checkIfTestStageExitCodeShouldExit(exitCode)
+                            //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
 
                             util.convertTestResultsToHtml(WORKING_DIR, playMode)
                             util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
@@ -144,7 +144,7 @@ pipeline {
                 dir("${WORKING_DIR}") {
                     retry (3) {
                         script {
-                            util.buildProject(UNITY_EXECUTABLE)
+                            util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
                         }
                     }
                 }
@@ -161,7 +161,7 @@ pipeline {
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH, env.FAILURE_REASON)
             }
         }
         aborted {

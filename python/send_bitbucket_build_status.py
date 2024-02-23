@@ -8,6 +8,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Arguments for sending Bitbucket build statuses.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("pr-commit", help="The full SHA hash of the commit where the build status will be sent.")
 parser.add_argument("pr-status", choices=['SUCCESSFUL', 'FAILED', 'STOPPED', 'INPROGRESS'])
+parser.add_argument("-desc", "--description", help="An optional argument for adding additional information to the build description.")
 args = vars(parser.parse_args())
 
 # Environment variables:
@@ -18,6 +19,7 @@ build_url = os.getenv('BUILD_URL')
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["pr-commit"]}/statuses/build'
+description = f"{args['pr-status']}: {args['description']}" if (args['description'] != None) else args['pr-status']
 
 headers = {
     "Accept": "application/json",
@@ -29,7 +31,7 @@ headers = {
 build_status = json.dumps( {
     "key": build_id,
     "state": args['pr-status'],
-    "description": args['pr-status'],
+    "description": description,
     "url": build_url
 } )
 

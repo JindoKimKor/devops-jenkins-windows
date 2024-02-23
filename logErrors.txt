@@ -1,0 +1,3 @@
+An error occurred while resolving packages
+Native Crash
+Error building Player
