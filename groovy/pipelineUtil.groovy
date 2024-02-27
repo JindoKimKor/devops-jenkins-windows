@@ -69,7 +69,6 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
 
     def reportSettings = (enableReporting) ? """ \
-        -testPlatform ${testType} \
         -testResults \"${workingDir}/test_results/${testType}-results.xml\" \
         -debugCodeOptimization \
         -enableCodeCoverage \
@@ -79,6 +78,8 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
     def exitCode = sh (script: """\"${unityExecutable}\" \
         -runTests \
         -batchmode \
+        -buildTarget WebGL \
+        -testPlatform ${testType} \
         -projectPath . \
         -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
 

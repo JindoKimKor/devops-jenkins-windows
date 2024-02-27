@@ -119,6 +119,7 @@ pipeline {
                 dir("${WORKING_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
                     -batchmode \
+                    -buildTarget WebGL \
                     -logFile \"${WORKING_DIR}/coverage_results/coverage_report.log\" \
                     -projectPath . \
                     -debugCodeOptimization \
