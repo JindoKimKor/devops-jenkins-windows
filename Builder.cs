@@ -1,8 +1,6 @@
-using UnityEngine;
 using UnityEditor;
 using System.Linq;
-using System;
-using System.IO;
+using UnityEditor.Build.Reporting;
 
 public class Builder
 {
@@ -18,6 +16,15 @@ public class Builder
 
     static void BuildWebGL()
     {
-        BuildPipeline.BuildPlayer(GetEnabledScenes(), "./Builds/", BuildTarget.WebGL, BuildOptions.None);
+        BuildReport report = BuildPipeline.BuildPlayer(GetEnabledScenes(), "./Builds/", BuildTarget.WebGL, BuildOptions.None);
+
+        if (report.summary.result == BuildResult.Succeeded) 
+        { 
+            EditorApplication.Exit(0); 
+        }
+        else 
+        {
+            EditorApplication.Exit(1);
+        }
     }
 }

@@ -65,7 +65,7 @@ def getUnityExecutable(workspace, workingDir) {
 }
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
-def runUnityTests(unityExecutable, workingDir, testType, enableReporting) {
+def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
 
     def reportSettings = (enableReporting) ? """ \
@@ -74,7 +74,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting) {
         -debugCodeOptimization \
         -enableCodeCoverage \
         -coverageResultsPath \"${workingDir}/coverage_results\" \
-        -coverageOptions \"generageAdditionalMetrics;dontClear\"""" : ""
+        -coverageOptions \"generateAdditionalMetrics;dontClear\"""" : ""
 
     def exitCode = sh (script: """\"${unityExecutable}\" \
         -runTests \
@@ -84,6 +84,10 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting) {
 
     if (exitCode != 0 && exitCode != 2) {
         env.FAILURE_REASON = parseLogsForError(logFile)
+        sh "exit ${exitCode}"
+    }
+    else if (deploymentBuild && exitCode == 2) {
+        env.FAILURE_REASON = "Failing ${testType} tests!"
         sh "exit ${exitCode}"
     }
 }
@@ -118,6 +122,8 @@ def buildProject(workingDir, unityExecutable) {
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)
+
+    echo "${exitCode}"
 
     if (exitCode != 0) {
         env.FAILURE_REASON = parseLogsForError(logFile)

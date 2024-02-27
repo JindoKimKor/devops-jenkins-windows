@@ -76,7 +76,7 @@ pipeline {
                     sh "mkdir -p test_results/EditMode-report"
                     sh "mkdir coverage_results"
                     script {
-                        def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true)
+                        def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
                         //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
 
                         util.convertTestResultsToHtml(WORKING_DIR, editMode)
@@ -98,7 +98,7 @@ pipeline {
                     sh "mkdir -p test_results/PlayMode-report"
                     retry (5) {
                         script {
-                            def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true)
+                            def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true, false)
                             //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
 
                             util.convertTestResultsToHtml(WORKING_DIR, playMode)
