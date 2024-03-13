@@ -16,7 +16,7 @@ args = vars(parser.parse_args())
 
 # Environment variables:
 access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
-build_id = os.getenv('BUILD_ID')
+ticket_number = os.getenv('TICKET_NUMBER')
 pr_repo = os.getenv('JOB_REPO')
 folder_name = os.getenv('FOLDER_NAME')
 
@@ -41,11 +41,11 @@ result_float = float(result)
 
 # Sending the report to Bitbucket Cloud API.
 report = json.dumps( {
-    "title": f"{build_id}: Code Coverage",
+    "title": f"{ticket_number}: Code Coverage",
     "details": "*Only includes line coverage.",
     "report_type": "COVERAGE",
     "reporter": "Jenkins",
-    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/CodeCoverage-report/index.html",
+    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{ticket_number}/CodeCoverage-report/index.html",
     "data": [
         {
             "type": "PERCENTAGE",

@@ -15,11 +15,13 @@ args = vars(parser.parse_args())
 access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
 pr_repo = os.getenv('JOB_REPO')
 build_id = os.getenv('BUILD_ID')
-build_url = os.getenv('BUILD_URL')
+ticket = os.getenv('TICKET_NUMBER')
+folder_name = os.getenv('FOLDER_NAME')
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["pr-commit"]}/statuses/build'
 description = f"{args['pr-status']}: {args['description']}" if (args['description'] != None) else args['pr-status']
+build_url = f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{ticket}/logs.html" if args['pr-status'] != "INPROGRESS" else os.getenv('BUILD_URL')
 
 headers = {
     "Accept": "application/json",

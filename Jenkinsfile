@@ -13,6 +13,7 @@ pipeline {
         WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
+        JENKINS_API_KEY = credentials('jenkins-api-key')
     }   
 
     stages {
@@ -29,8 +30,9 @@ pipeline {
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
 
                     echo "Sending \'In Progress\' status to Bitbucket..."
-                    env.FULL_COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
-                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", FULL_COMMIT_HASH)
+                    env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
+                    env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
                 }
 
                 echo "Cleaning workspace..."
@@ -81,10 +83,10 @@ pipeline {
 
                         util.convertTestResultsToHtml(WORKING_DIR, editMode)
                         env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
-                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
 
                         echo "Sending EditMode test results to Bitbucket..."
-                        util.sendTestReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH, editMode)
+                        util.sendTestReport(WORKSPACE, WORKING_DIR, COMMIT_HASH, editMode)
                     }
                 }
             }
@@ -102,10 +104,10 @@ pipeline {
                             //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
 
                             util.convertTestResultsToHtml(WORKING_DIR, playMode)
-                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
+                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
 
                             echo "Sending PlayMode test results to Bitbucket..."
-                            util.sendTestReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH, playMode)
+                            util.sendTestReport(WORKSPACE, WORKING_DIR, COMMIT_HASH, playMode)
                         }
                     }
                 }
@@ -129,10 +131,10 @@ pipeline {
                     -quit"""
 
                     script {
-                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, BUILD_ID, "${WORKING_DIR}/coverage_results/Report", "CodeCoverage")
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/coverage_results/Report", "CodeCoverage")
 
                         echo "Sending code coverage report to Bitbucket..."
-                        util.sendCoverageReport(WORKSPACE, WORKING_DIR, FULL_COMMIT_HASH)
+                        util.sendCoverageReport(WORKSPACE, WORKING_DIR, COMMIT_HASH)
                     }   
                 }
             }
@@ -157,17 +159,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", FULL_COMMIT_HASH)
+                util.postBuild("SUCCESSFUL")
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", FULL_COMMIT_HASH, env.FAILURE_REASON)
+                util.postBuild("FAILED")
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", FULL_COMMIT_HASH)
+                util.postBuild("STOPPED")
             }
         }
     }

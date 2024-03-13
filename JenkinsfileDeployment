@@ -20,6 +20,10 @@ pipeline {
                     branch_path = branch_path.trim()
                     sh "rm -r \"${branch_path}\""
                     sh "rm -r \"${branch_path}@tmp\""
+
+                    env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
+                    def ticketNumber = util.parseTicketNumber(PR_BRANCH)
+                    util.cleanMergedBranchReportsFromWebServer(FOLDER_NAME, ticketNumber)
                 }
             }
         }
@@ -41,13 +45,13 @@ pipeline {
                     echo "Pulling latest version of default branch..."
                     sh "git pull"
                     script {
-                        env.LATEST_COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
+                        env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
                 }
 
                 script {
                     echo "Sending \'In Progress\' status to Bitbucket..."
-                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", LATEST_COMMIT_HASH)
+                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
 
                     echo "Identifying Unity version..."
                     env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, WORKING_DIR)
@@ -94,10 +98,9 @@ pipeline {
                 echo "Deploying build to LTI web server..."
 
                 script {
-                    def folderName = "${JOB_NAME}".split('/').first()
-                    sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${folderName} \
-                    && sudo chown vconadmin:vconadmin /var/www/html/${folderName}\""
-                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${folderName}\""
+                    sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
+                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
                 }
             }
         }
@@ -106,17 +109,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", LATEST_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH)
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", LATEST_COMMIT_HASH, env.FAILURE_REASON)
+                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, env.FAILURE_REASON)
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", LATEST_COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH)
             }
         }
     }

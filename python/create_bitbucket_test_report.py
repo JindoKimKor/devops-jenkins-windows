@@ -16,7 +16,7 @@ args = vars(parser.parse_args())
 
 # Environment variables:
 access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
-build_id = os.getenv('BUILD_ID')
+ticket_number = os.getenv('TICKET_NUMBER')
 pr_repo = os.getenv('JOB_REPO')
 folder_name = os.getenv('FOLDER_NAME')
 
@@ -47,12 +47,12 @@ result = "PASSED" if (int(failed_tests['total_failed']) == 0) else "FAILED"
 
 # Sending the report to Bitbucket Cloud API.
 report = json.dumps( {
-    "title": f"{build_id}: {args['test-mode']} Tests",
+    "title": f"{ticket_number}: {args['test-mode']} Tests",
     "details": f"{failed_tests['total_failed']}/{failed_tests['total_tests']} tests failed.",
     "report_type": "TEST",
     "reporter": "Jenkins",
     "result": f"{result}",
-    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{build_id}/{args['test-mode']}-report/TestReport.html",
+    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{ticket_number}/{args['test-mode']}-report/TestReport.html",
     "data": [
         {
             "type": "BOOLEAN",

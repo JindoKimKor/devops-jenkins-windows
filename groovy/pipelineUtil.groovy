@@ -102,14 +102,28 @@ def convertTestResultsToHtml(workingDir, testType) {
         --reportdirpath=\"${workingDir}/test_results/${testType}-report\"""", returnStatus: true)
 }
 
+def parseTicketNumber(branchName) {
+    def patternMatches = branchName =~ /^[A-Za-z]+-[0-9]+/
+    
+    if (patternMatches) {
+        return patternMatches[0]
+    }
+}
+
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
-def publishTestResultsHtmlToWebServer(remoteProjectFolderName, buildId, reportDir, reportType) {
-    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-    \"sudo mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${buildId}/${reportType}-report \
-    && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${buildId}/${reportType}-report\""""
+def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType) {
+     sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
+    \"sudo mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
+    && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""""
 
     sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${reportDir}/*\" \
-    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${buildId}/${reportType}-report\""
+    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""
+}
+
+def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
+{
+    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
+    \"sudo rm -r /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
 }
 
 // Builds a Unity project.
@@ -130,5 +144,19 @@ def buildProject(workingDir, unityExecutable) {
         env.FAILURE_REASON = parseLogsForError(logFile)
         sh "exit ${exitCode}"
     }
+}
+
+// A method for post-build PR actions
+def postBuild(status) {
+    sh "python -u \'${env.WORKSPACE}/python/create_log_report.py\'"
+
+    sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
+    \"sudo mkdir -p /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER} \
+    && sudo chown vconadmin:vconadmin /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""""
+
+    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${env.WORKING_DIR}/logs.html\" \
+    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""
+
+    sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH)
 }
 return this
