@@ -83,23 +83,35 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -projectPath . \
         -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
 
-    if (exitCode != 0 && exitCode != 2) {
-        env.FAILURE_REASON = parseLogsForError(logFile)
+    if (deploymentBuild && exitCode == 2) {
+        env.FAILURE_REASON = "Failing ${testType} tests!"
         sh "exit ${exitCode}"
     }
-    else if (deploymentBuild && exitCode == 2) {
-        env.FAILURE_REASON = "Failing ${testType} tests!"
+    else if (exitCode != 0 && exitCode != 2) {
+        env.FAILURE_REASON = parseLogsForError(logFile)
         sh "exit ${exitCode}"
     }
 }
 
 // Converts a Unity test result XML file to an HTML file.
 def convertTestResultsToHtml(workingDir, testType) {
-    sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
+    // Writing the console output to a file because Jenkins' returnStdout still causes the pipeline to fail if the exit code != 0
+    def exitCode = sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
         --resultsPath=\"${workingDir}/test_results\" \
         --resultXMLName=${testType}-results.xml \
         --unityLogName=${testType}-tests.log \
-        --reportdirpath=\"${workingDir}/test_results/${testType}-report\"""", returnStatus: true)
+        --reportdirpath=\"${workingDir}/test_results/${testType}-report\" > UnityTestRunnerResultsReporter.log""", returnStatus: true)
+    
+    // This Unity tool throws an error if any tests are failing, yet still generates the report.
+    // If the tests are failing, we want to avoid failing the pipeline so we can access the report.
+    if (exitCode != 0) {
+        consoleOutput = readFile("UnityTestRunnerResultsReporter.log")
+        def testReportGenerated = consoleOutput =~ /Test report generated:/
+
+        if (!testReportGenerated) {
+            sh "exit 1"
+        }
+    }
 }
 
 def parseTicketNumber(branchName) {
@@ -120,8 +132,7 @@ def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, rep
     \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""
 }
 
-def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
-{
+def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber) {
     sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"sudo rm -r /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
 }

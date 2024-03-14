@@ -33,6 +33,7 @@ pipeline {
                     env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
                     env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
+                    env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                 }
 
                 echo "Cleaning workspace..."
@@ -78,11 +79,9 @@ pipeline {
                     sh "mkdir -p test_results/EditMode-report"
                     sh "mkdir coverage_results"
                     script {
-                        def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
-                        //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
+                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
 
-                        util.convertTestResultsToHtml(WORKING_DIR, editMode)
-                        env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
+                        retry(2) { util.convertTestResultsToHtml(WORKING_DIR, editMode) }
                         util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
 
                         echo "Sending EditMode test results to Bitbucket..."
@@ -100,10 +99,9 @@ pipeline {
                     sh "mkdir -p test_results/PlayMode-report"
                     retry (5) {
                         script {
-                            def exitCode = util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true, false)
-                            //util.checkIfTestStageExitCodeShouldExit(WORKSPACE, exitCode)
+                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true, false)
 
-                            util.convertTestResultsToHtml(WORKING_DIR, playMode)
+                            retry(3) { util.convertTestResultsToHtml(WORKING_DIR, playMode) }
                             util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
 
                             echo "Sending PlayMode test results to Bitbucket..."
