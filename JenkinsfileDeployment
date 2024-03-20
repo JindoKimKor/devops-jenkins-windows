@@ -18,7 +18,12 @@ pipeline {
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
-                    sh "rm -r \"${branch_path}\""
+
+                    waitUntil (quiet: true) {
+                        def isBusy = sh (script: "rm -r \"${branch_path}\"", returnStatus: true)
+                        isBusy == 0
+                    }
+                    
                     sh "rm -r \"${branch_path}@tmp\""
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
@@ -109,17 +114,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, "-d")
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, env.FAILURE_REASON)
+                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, env.FAILURE_REASON, "-d")
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH)
+                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, "-d")
             }
         }
     }

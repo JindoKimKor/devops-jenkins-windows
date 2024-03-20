@@ -16,12 +16,8 @@ def getFullCommitHash(workspace, shortCommit) {
 }
 
 // Sends a build status to Bitbucket Cloud API.
-def sendBuildStatus(workspace, state, commitHash, errorMessage = "") {
-    if (errorMessage != "" && errorMessage != "null") {
-        errorMessage = "-desc \'${errorMessage}\'"
-    }
-
-    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state} ${errorMessage}"
+def sendBuildStatus(workspace, state, commitHash, deployment = "") {
+    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state} ${deployment}"
 }
 
 // Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
@@ -83,12 +79,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -projectPath . \
         -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
 
-    if (deploymentBuild && exitCode == 2) {
-        env.FAILURE_REASON = "Failing ${testType} tests!"
-        sh "exit ${exitCode}"
-    }
-    else if (exitCode != 0 && exitCode != 2) {
-        env.FAILURE_REASON = parseLogsForError(logFile)
+    if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
         sh "exit ${exitCode}"
     }
 }
@@ -134,27 +125,20 @@ def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, rep
 
 def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber) {
     sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-    \"sudo rm -r /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
+    \"sudo rm -r -f /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
 }
 
 // Builds a Unity project.
 def buildProject(workingDir, unityExecutable) {
     def logFile = "${workingDir}/build.log"
 
-    def exitCode = sh (script: """\"${unityExecutable}\" \
+    def exitCode = sh """\"${unityExecutable}\" \
         -quit \
         -batchmode \
         -nographics \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
-        -executeMethod Builder.BuildWebGL""", returnStatus: true)
-
-    echo "${exitCode}"
-
-    if (exitCode != 0) {
-        env.FAILURE_REASON = parseLogsForError(logFile)
-        sh "exit ${exitCode}"
-    }
+        -executeMethod Builder.BuildWebGL"""
 }
 
 // A method for post-build PR actions
@@ -165,8 +149,10 @@ def postBuild(status) {
     \"sudo mkdir -p /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER} \
     && sudo chown vconadmin:vconadmin /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""""
 
-    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${env.WORKING_DIR}/logs.html\" \
+    if (fileExists("${env.WORKING_DIR}/logs.html")) {
+        sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${env.WORKING_DIR}/logs.html\" \
     \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""
+    }
 
     sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH)
 }

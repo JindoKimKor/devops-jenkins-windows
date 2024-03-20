@@ -40,5 +40,6 @@ content = template.render(
     build=unity_build_log
 )
 
-with open(logs_file, mode="w", encoding="utf-8") as logs:
-    logs.write(content)
+if os.path.isfile(logs_file):
+    with open(logs_file, mode="w", encoding="utf-8") as logs:
+        logs.write(content)
