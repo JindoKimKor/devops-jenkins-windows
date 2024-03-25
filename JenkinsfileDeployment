@@ -5,6 +5,28 @@ def util
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'PR_BRANCH', defaultValue: '', description: '')
+        string(name: 'PR_REPO_HTML', defaultValue: '', description: '')
+        string(name: 'PR_PROJECT', defaultValue: '', description: '')
+        string(name: 'PR_STATE', defaultValue: '', description: '')
+    }
+
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'PR_BRANCH', value: '$.pullrequest.source.branch.name'],
+                [key: 'PR_REPO_HTML', value: '$.repository.links.self.href'],
+                [key: 'PR_PROJECT', value: '$.repository.full_name'],
+                [key: 'PR_STATE', value: '$.pullrequest.state']
+            ],
+
+            tokenCredentialId: 'trigger-token',
+            regexpFilterText: '$PR_STATE',
+            regexpFilterExpression: 'MERGE'
+        )
+    }
+
     environment {
         WORKING_DIR = "${WORKSPACE}/Deployment"
         JOB_REPO = "${PR_REPO_HTML}"

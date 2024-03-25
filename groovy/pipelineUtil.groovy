@@ -76,7 +76,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -batchmode \
         -buildTarget WebGL \
         -testPlatform ${testType} \
-        -projectPath . \
+        -projectPath ${workingDir} \
         -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
 
     if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {

@@ -9,12 +9,40 @@ pipeline {
         dotnetsdk 'dotnet-core-2.1.202'
     }
 
+    parameters {
+        string(name: 'PR_BRANCH', defaultValue: '', description: '')
+        string(name: 'PR_DESTINATION_BRANCH', defaultValue: '', description: '')
+        string(name: 'PR_REPO_HTML', defaultValue: '', description: '')
+        string(name: 'PR_REPO_NAME', defaultValue: '', description: '')
+        string(name: 'PR_COMMIT', defaultValue: '', description: '')
+        string(name: 'PR_PROJECT', defaultValue: '', description: '')
+        string(name: 'PR_STATE', defaultValue: '', description: '')
+    }
+
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'PR_BRANCH', value: '$.pullrequest.source.branch.name'],
+                [key: 'PR_DESTINATION_BRANCH', value: '$.pullrequest.destination.branch.name'],
+                [key: 'PR_REPO_HTML', value: '$.repository.links.self.href'],
+                [key: 'PR_REPO_NAME', value: '$.repository.name'],
+                [key: 'PR_COMMIT', value: '$.pullrequest.source.commit.hash'],
+                [key: 'PR_PROJECT', value: '$.repository.full_name'],
+                [key: 'PR_STATE', value: '$.pullrequest.state']
+            ],
+
+            tokenCredentialId: 'trigger-token',
+            regexpFilterText: '$PR_STATE',
+            regexpFilterExpression: 'OPEN'
+        )
+    }
+
     environment { 
         WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
-    }   
+    }
 
     stages {
         // Prepares the workspace for the build by telling Bitbucket the build is in progress, cleaning the working directory,
