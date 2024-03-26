@@ -40,12 +40,8 @@ pipeline {
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
-
-                    waitUntil (quiet: true) {
-                        def isBusy = sh (script: "rm -r \"${branch_path}\"", returnStatus: true)
-                        isBusy == 0
-                    }
                     
+                    sh "rm -r \"${branch_path}\""
                     sh "rm -r \"${branch_path}@tmp\""
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
