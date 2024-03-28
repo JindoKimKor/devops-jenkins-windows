@@ -69,7 +69,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -debugCodeOptimization \
         -enableCodeCoverage \
         -coverageResultsPath \"${workingDir}/coverage_results\" \
-        -coverageOptions \"generateAdditionalMetrics;dontClear\"""" : ""
+        -coverageOptions \"generateAdditionalMetrics\"""" : ""
 
     def exitCode = sh (script: """\"${unityExecutable}\" \
         -runTests \
@@ -106,7 +106,7 @@ def convertTestResultsToHtml(workingDir, testType) {
 }
 
 def parseTicketNumber(branchName) {
-    def patternMatches = branchName =~ /^[A-Za-z]+-[0-9]+/
+    def patternMatches = branchName =~ /[A-Za-z]+-[0-9]+/
     
     if (patternMatches) {
         return patternMatches[0]

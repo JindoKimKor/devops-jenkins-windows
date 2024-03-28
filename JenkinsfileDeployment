@@ -23,7 +23,7 @@ pipeline {
 
             tokenCredentialId: 'trigger-token',
             regexpFilterText: '$PR_STATE',
-            regexpFilterExpression: 'MERGE'
+            regexpFilterExpression: 'MERGED'
         )
     }
 
@@ -64,12 +64,13 @@ pipeline {
                 
                 dir ("${WORKING_DIR}") {
                     echo "Cleaning project..."
-                    sh "git clean -d -f ."
+                    sh "git stash"
                     echo "Pulling latest version of default branch..."
                     sh "git pull"
                     script {
                         env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
+                    sh "git stash pop"
                 }
 
                 script {
@@ -108,7 +109,7 @@ pipeline {
                 echo "Building Unity project for WebGL..."
                 sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
                 dir("${WORKING_DIR}") {
-                    retry (3) {
+                    retry (5) {
                         script {
                             util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
                         }
@@ -137,7 +138,7 @@ pipeline {
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, env.FAILURE_REASON, "-d")
+                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, "-d")
             }
         }
         aborted {
