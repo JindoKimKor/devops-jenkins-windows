@@ -34,6 +34,8 @@ pipeline {
     }
 
     stages {
+        // Deletes the cloned branch from the build machine after it has been merged into main.
+        // This prevents the build machine's storage from capping out.
         stage ('Delete Merged Branch') {
             steps {
                 script {
@@ -50,6 +52,8 @@ pipeline {
                 }
             }
         }
+        // Prepares the workspace for the build by cleaning the project, pulling main, and then telling Bitbucket that the
+        // build is in progress. It also checks to see if the project's Unity version is downloaded, and installs it if not.
         stage ('Prepare Workspace') {
             environment {
                 REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
@@ -67,6 +71,8 @@ pipeline {
                     sh "git stash"
                     echo "Pulling latest version of default branch..."
                     sh "git pull"
+
+                    // Getting the full commit hash from git in order to send the build status to Bitbucket.
                     script {
                         env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
@@ -82,6 +88,8 @@ pipeline {
                 }
             }
         }
+        // Runs the project's EditMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
+        // We do not want failing tests on main. 
         stage ('EditMode Tests') {
             steps {
                 echo "Running EditMode tests..."
@@ -92,6 +100,8 @@ pipeline {
                 }
             }
         }
+        // Runs the project's PlayMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
+        // We do not want failing tests on main. This stage is retried 5 times in case of Unity crashes (which are common).
         stage ('PlayMode Tests In Editor'){
             steps {
                 echo "Running PlayMode tests..."
@@ -104,6 +114,7 @@ pipeline {
                 }
             }
         }
+        // Builds the project for WebGL.
         stage ('Build Project') {
             steps {
                 echo "Building Unity project for WebGL..."
@@ -117,6 +128,7 @@ pipeline {
                 }
             }
         }
+        // Deploys the build on our remote web server. 
         stage ('Deploy Build') {
             steps {
                 echo "Deploying build to LTI web server..."
@@ -130,6 +142,7 @@ pipeline {
         }
     }
 
+    // Sends the build status to Bitbucket. If the build was successful, Bitbucket will link to the deployed project on the web server.
     post {
         success {
             script {

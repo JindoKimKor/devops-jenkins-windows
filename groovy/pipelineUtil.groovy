@@ -30,6 +30,7 @@ def sendCoverageReport(workspace, workingDir, commitHash) {
     sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${commitHash}\' \'${workingDir}/coverage_results/Report\'"
 }
 
+// Parses the given log for any errors recorded in a text file of known errors. Not currently in use.
 def parseLogsForError(logPath) {
     return sh (script: "python \'${workspace}/python/get_unity_failure.py\' \'${logPath}\'", returnStdout: true)
 }
@@ -69,7 +70,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -debugCodeOptimization \
         -enableCodeCoverage \
         -coverageResultsPath \"${workingDir}/coverage_results\" \
-        -coverageOptions \"generateAdditionalMetrics\"""" : ""
+        -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
     def exitCode = sh (script: """\"${unityExecutable}\" \
         -runTests \
@@ -105,6 +106,7 @@ def convertTestResultsToHtml(workingDir, testType) {
     }
 }
 
+// Parses a Jira ticket number from the branch name.
 def parseTicketNumber(branchName) {
     def patternMatches = branchName =~ /[A-Za-z]+-[0-9]+/
     
@@ -123,6 +125,7 @@ def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, rep
     \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""
 }
 
+// Deletes a branch's reports from the web server after it has been merged.
 def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber) {
     sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"sudo rm -r -f /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
@@ -141,7 +144,9 @@ def buildProject(workingDir, unityExecutable) {
         -executeMethod Builder.BuildWebGL"""
 }
 
-// A method for post-build PR actions
+// A method for post-build PR actions.
+// Creates a log report for Unity logs and Jenkins logs, then publishes it to the web server,
+// and lastly sends the build status to Bitbucket.
 def postBuild(status) {
     sh "python -u \'${env.WORKSPACE}/python/create_log_report.py\'"
 

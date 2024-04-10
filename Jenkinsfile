@@ -153,7 +153,7 @@ pipeline {
                     -debugCodeOptimization \
                     -enableCodeCoverage \
                     -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
-                    -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics\" \
+                    -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics;useProjectSettings\" \
                     -quit"""
 
                     script {
