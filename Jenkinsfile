@@ -109,7 +109,16 @@ pipeline {
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
 
-                        retry(2) { util.convertTestResultsToHtml(WORKING_DIR, editMode) }
+                        // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
+                        // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
+                        // because the file is currently open elsewhere.
+                        waitUntil {
+                            def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/EditMode-tests.log")
+
+                            fileAvailable == 0
+                        }
+
+                        util.convertTestResultsToHtml(WORKING_DIR, editMode)
                         util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
 
                         echo "Sending EditMode test results to Bitbucket..."
@@ -129,7 +138,12 @@ pipeline {
                         script {
                             util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true, false)
 
-                            retry(3) { util.convertTestResultsToHtml(WORKING_DIR, playMode) }
+                            waitUntil {
+                                def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/PlayMode-tests.log")
+                                fileAvailable == 0
+                            }   
+
+                            util.convertTestResultsToHtml(WORKING_DIR, playMode)
                             util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
 
                             echo "Sending PlayMode test results to Bitbucket..."
@@ -169,12 +183,11 @@ pipeline {
         stage('Build Project') {
             steps {
                 echo "Building Unity project..."
-                sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
-                dir("${WORKING_DIR}") {
-                    retry (5) {
-                        script {
-                            util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
-                        }
+                sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+
+                retry (5) {
+                    script {
+                        util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }

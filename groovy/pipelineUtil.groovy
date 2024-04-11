@@ -35,6 +35,12 @@ def parseLogsForError(logPath) {
     return sh (script: "python \'${workspace}/python/get_unity_failure.py\' \'${logPath}\'", returnStdout: true)
 }
 
+def checkIfFileIsLocked(filePath) {
+    return bat (script: """2>nul (
+            >>\"${filePath}\" (call )
+        ) && (exit 0) || (exit 1)""", returnStatus: true)
+}
+
 // Checks if an exit code thrown during a test stage should fail the PR Pipeline. ExitCode 2 means failing tests, which we want to report back to Bitbucket
 // without failing the entire pipeline.
 def checkIfTestStageExitCodeShouldExit(workspace, exitCode) {
@@ -75,11 +81,13 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
     def exitCode = sh (script: """\"${unityExecutable}\" \
         -runTests \
         -batchmode \
+        -nographics \
         -buildTarget WebGL \
         -testPlatform ${testType} \
-        -projectPath . \
+        -projectPath \"${workingDir}\" \
         -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
 
+    // We only want to fail a build with failing tests if it is a deployment build.
     if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
         sh "exit ${exitCode}"
     }
@@ -135,13 +143,18 @@ def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
 def buildProject(workingDir, unityExecutable) {
     def logFile = "${workingDir}/build.log"
 
-    def exitCode = sh """\"${unityExecutable}\" \
+    def exitCode = sh (script:"""\"${unityExecutable}\" \
         -quit \
         -batchmode \
         -nographics \
+        -projectPath \"${workingDir}\" \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
-        -executeMethod Builder.BuildWebGL"""
+        -executeMethod Builder.BuildWebGL""", returnStatus: true)
+
+    if (exitCode != 0) {
+        sh "exit ${exitCode}"
+    }
 }
 
 // A method for post-build PR actions.

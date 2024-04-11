@@ -43,8 +43,8 @@ pipeline {
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
                     
-                    sh "rm -r \"${branch_path}\""
-                    sh "rm -r \"${branch_path}@tmp\""
+                    sh "rm -r -f \"${branch_path}\""
+                    sh "rm -r -f \"${branch_path}@tmp\""
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                     def ticketNumber = util.parseTicketNumber(PR_BRANCH)
@@ -118,11 +118,10 @@ pipeline {
             steps {
                 echo "Building Unity project for WebGL..."
                 sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
-                dir("${WORKING_DIR}") {
-                    retry (5) {
-                        script {
-                            util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
-                        }
+
+                retry (5) {
+                    script {
+                        util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }
