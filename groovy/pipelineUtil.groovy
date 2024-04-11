@@ -152,6 +152,11 @@ def buildProject(workingDir, unityExecutable) {
         -buildTarget WebGL \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)
 
+    if (fileExists("${workingDir}/Temp")) {
+        sh "taskkill //im Unity.exe //t //f"
+        sh "rm -r -f ${workingDir}/Temp"
+    }
+
     if (exitCode != 0) {
         sh "exit ${exitCode}"
     }
