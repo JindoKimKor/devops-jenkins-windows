@@ -68,7 +68,7 @@ pipeline {
                 
                 dir ("${WORKING_DIR}") {
                     echo "Cleaning project..."
-                    sh "git stash"
+                    sh "git reset --hard HEAD"
                     echo "Pulling latest version of default branch..."
                     sh "git pull"
 
@@ -76,7 +76,6 @@ pipeline {
                     script {
                         env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
-                    sh "git stash pop"
                 }
 
                 script {
