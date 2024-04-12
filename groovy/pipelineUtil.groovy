@@ -152,8 +152,12 @@ def buildProject(workingDir, unityExecutable) {
         -buildTarget WebGL \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)
 
+    // If Unity crashes, it often leaves behind a temp folder with a lock file.
+    // This needs to be removed so it does not effect subsequent builds on the same branch.
     if (fileExists("${workingDir}/Temp")) {
-        sh "taskkill //im Unity.exe //t //f"
+        bat """tasklist /fi \"IMAGENAME eq Unity.exe\" 2>nul | find /i /n \"Unity.exe\">nul \
+            if \"%ERRORLEVEL%\"==\"0\" taskkill /im Unity.exe /t /f"""
+
         sh "rm -r -f ${workingDir}/Temp"
     }
 
