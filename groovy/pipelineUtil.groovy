@@ -71,6 +71,20 @@ def getUnityExecutable(workspace, workingDir) {
 def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
 
+    def flags = "-runTests \
+        -batchmode \
+        -nographics \
+        -testPlatform ${testType} \
+        -projectPath \"${workingDir}\" \
+        -logFile \"${logFile}\"${reportSettings}"
+
+    if(testType == "PlayMode")
+    {
+        flags += """ -testCategory BuildServer"""
+    }
+
+    echo "Flags set to: ${flags}"
+
     def reportSettings = (enableReporting) ? """ \
         -testResults \"${workingDir}/test_results/${testType}-results.xml\" \
         -debugCodeOptimization \
@@ -79,13 +93,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
     def exitCode = sh (script: """\"${unityExecutable}\" \
-        -runTests \
-        -batchmode \
-        -nographics \
-        -buildTarget WebGL \
-        -testPlatform ${testType} \
-        -projectPath \"${workingDir}\" \
-        -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
+        ${flags}""", returnStatus: true)
 
     // We only want to fail a build with failing tests if it is a deployment build.
     if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
