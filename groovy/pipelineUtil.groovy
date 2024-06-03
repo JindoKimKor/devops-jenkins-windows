@@ -69,6 +69,7 @@ def getUnityExecutable(workspace, workingDir) {
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
 def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
+    echo "In Unity Test Execution"
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
 
     def flags = "-runTests \
@@ -80,7 +81,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
 
     if(testType == "PlayMode")
     {
-        flags += """ -testCategory BuildServer"""
+        flags += " -testCategory BuildServer"
     }
 
     echo "Flags set to: ${flags}"
