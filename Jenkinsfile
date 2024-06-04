@@ -107,7 +107,6 @@ pipeline {
                     sh "mkdir -p test_results/EditMode-report"
                     sh "mkdir coverage_results"
                     script {
-                        echo "in script block"
                         util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
 
                         // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.

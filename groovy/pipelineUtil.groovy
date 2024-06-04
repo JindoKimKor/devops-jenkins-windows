@@ -69,8 +69,6 @@ def getUnityExecutable(workspace, workingDir) {
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
 def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
-    echo "In Unity Test Execution"
-
     //setup for commands/executable
 
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
