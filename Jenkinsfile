@@ -74,7 +74,7 @@ pipeline {
 
                 dir ("${WORKING_DIR}") {
                     
-                    sh "rm -f 'C:/ProgramData/Jenkins/.jenkins/workspace/Jindo-Pipeline-Test/Pipeline-test/PRJob/EditMode-Test/.git/index.lock'"
+                    sh "rm -f '${WORKING_DIR}/.git/index.lock'"
                     sh "git fetch origin"
                     sh "git reset --hard origin/${PR_BRANCH}"
                     sh "git switch ${PR_BRANCH}"
