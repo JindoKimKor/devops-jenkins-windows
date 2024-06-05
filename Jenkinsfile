@@ -113,7 +113,7 @@ pipeline {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
                     sh "mkdir -p test_results/EditMode-report"
-                    sh "mkdir coverage_results"
+                    sh "mkdir -p coverage_results"
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
 
