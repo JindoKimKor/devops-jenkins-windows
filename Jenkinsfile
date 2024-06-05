@@ -73,15 +73,23 @@ pipeline {
 
 
                 dir ("${WORKING_DIR}") {
-                    
-                    sh "rm -f '${WORKING_DIR}/.git/index.lock'"
-                    sh "git fetch origin"
-                    sh "git reset --hard origin/${PR_BRANCH}"
-                    sh "git switch ${PR_BRANCH}"
-                    
-                
-                    echo "Checking if branch is up to date..."
                     script {
+                        sh "rm -f '${WORKING_DIR}/.git/index.lock'"
+                        if (fileExists('.git')) {
+                            echo "Fetching latest changes..."
+                            sh "git fetch origin"
+        
+                            sh "git reset --hard origin/${PR_BRANCH}"
+                            sh "git switch ${PR_BRANCH}"
+                        } else {
+                            echo "Cleaning workspace..."
+                            sh "rm -rf \"${WORKING_DIR}\""
+                            echo "Cloning repository..."
+                            sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                            sh "git switch ${PR_BRANCH}"
+                        }
+                                            
+                        echo "Checking if branch is up to date..."
                         if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
                             echo "Branch is up to date."
                         }
