@@ -67,10 +67,18 @@ pipeline {
                 // echo "Cleaning workspace..."
                 // sh "rm -rf \"${WORKING_DIR}\""
 
-                echo "Pulling PR branch..."
-                sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                // echo "Pulling PR branch..."
+                // sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                
+
+
                 dir ("${WORKING_DIR}") {
-                    sh "git checkout ${PR_BRANCH}"
+                    
+                    sh "rm -f 'C:/ProgramData/Jenkins/.jenkins/workspace/Jindo-Pipeline-Test/Pipeline-test/PRJob/EditMode-Test/.git/index.lock'"
+                    sh "git fetch origin"
+                    sh "git reset --hard origin/${PR_BRANCH}"
+                    sh "git switch ${PR_BRANCH}"
+                    
                 
                     echo "Checking if branch is up to date..."
                     script {
@@ -179,19 +187,19 @@ pipeline {
                 }
             }
         }
-        // Builds the project and saves it.
-        // stage('Build Project') {
-        //     steps {
-        //         echo "Building Unity project..."
-        //         sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+        //Builds the project and saves it.
+        stage('Build Project') {
+            steps {
+                echo "Building Unity project..."
+                sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
 
-        //         retry (5) {
-        //             script {
-        //                 util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
-        //             }
-        //         }
-        //     }
-        // }
+                retry (5) {
+                    script {
+                        util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
+                    }
+                }
+            }
+        }
     }
 
     // When the pipeline finishes, sends the build status to Bitbucket.

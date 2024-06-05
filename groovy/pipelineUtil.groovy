@@ -78,14 +78,18 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -coverageResultsPath \"${workingDir}/coverage_results\" \
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
-    def exitCode = sh (script: """\"${unityExecutable}\" \
-        -runTests \
-        -batchmode \
-        -nographics \
-        -buildTarget WebGL \
-        -testPlatform ${testType} \
-        -projectPath \"${workingDir}\" \
-        -logFile \"${logFile}\"${reportSettings}""", returnStatus: true)
+    def exitCode = sh(script: """
+        \"${unityExecutable}\" \\
+        -runTests \\
+        -batchmode \\
+        -nographics \\
+        -buildTarget WebGL \\
+        -testPlatform ${testType} \\
+        -projectPath \"${workingDir}\" \\
+        -logFile \"${logFile}\"${reportSettings} \\
+        -quit
+        """, returnStatus: true)
+
 
     // We only want to fail a build with failing tests if it is a deployment build.
     if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
