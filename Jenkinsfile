@@ -180,18 +180,18 @@ pipeline {
             }
         }
         // Builds the project and saves it.
-        stage('Build Project') {
-            steps {
-                echo "Building Unity project..."
-                sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+        // stage('Build Project') {
+        //     steps {
+        //         echo "Building Unity project..."
+        //         sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
 
-                retry (5) {
-                    script {
-                        util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
-                    }
-                }
-            }
-        }
+        //         retry (5) {
+        //             script {
+        //                 util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     // When the pipeline finishes, sends the build status to Bitbucket.
