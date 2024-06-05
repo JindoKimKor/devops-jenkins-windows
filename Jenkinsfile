@@ -64,8 +64,8 @@ pipeline {
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                 }
 
-                echo "Cleaning workspace..."
-                sh "rm -rf \"${WORKING_DIR}\""
+                // echo "Cleaning workspace..."
+                // sh "rm -rf \"${WORKING_DIR}\""
 
                 echo "Pulling PR branch..."
                 sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
