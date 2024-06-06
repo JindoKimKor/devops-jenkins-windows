@@ -69,29 +69,29 @@ pipeline {
 
                 // echo "Pulling PR branch..."
                 // sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                
+                echo "Directory Checking if it exists"
+                if (!fileExists(WORKING_DIR)) {
+                    echo "Cloning repository..."
+                    sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                    sh "cd '${WORKING_DIR}' && git switch ${PR_BRANCH}"
+                } else {
+                    if (fileExists('${WORKING_DIR}/.git')) {
+                        //
+                        sh "rm -f '${WORKING_DIR}/.git/index.lock'"
+                        //
+                        echo "Fetching latest changes..."
+                        sh "git fetch origin"
+                        sh "git reset --hard origin/${PR_BRANCH}"
+                        sh "git switch ${PR_BRANCH}"
+                    } else{
+                        echo "Cleaning workspace..."
+                        sh "rm -rf '${WORKING_DIR}'"
 
+                    }
+                }
 
                 dir ("${WORKING_DIR}") {
-                    script {
-                        sh "rm -f '${WORKING_DIR}/.git/index.lock'"
-                        if (fileExists('.git')) {
-                            echo "Fetching latest changes..."
-                            sh "git fetch origin"
-        
-                            sh "git reset --hard origin/${PR_BRANCH}"
-                            sh "git switch ${PR_BRANCH}"
-                        } else {
-                            if (fileExists(WORKING_DIR)) {
-                                echo "Cleaning workspace..."
-                                sh "cd .. && rm -rf '${WORKING_DIR}'" //Avoid conflicting error between deleting directory and files and working same directory.
-                                sh "mkdir -p '${WORKING_DIR}'" // Ensure WORKING_DIR exists
-                            }
-                            echo "Cloning repository..."
-                            sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                            sh "cd '${WORKING_DIR}' && git switch ${PR_BRANCH}"
-                        }
-                                            
+                    script {                                           
                         echo "Checking if branch is up to date..."
                         if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
                             echo "Branch is up to date."
