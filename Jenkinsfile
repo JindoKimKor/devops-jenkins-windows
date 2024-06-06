@@ -69,24 +69,26 @@ pipeline {
 
                 // echo "Pulling PR branch..."
                 // sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                echo "Directory Checking if it exists"
-                if (!fileExists(WORKING_DIR)) {
-                    echo "Cloning repository..."
-                    sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                    sh "cd '${WORKING_DIR}' && git switch ${PR_BRANCH}"
-                } else {
-                    if (fileExists('${WORKING_DIR}/.git')) {
-                        //
-                        sh "rm -f '${WORKING_DIR}/.git/index.lock'"
-                        //
-                        echo "Fetching latest changes..."
-                        sh "git fetch origin"
-                        sh "git reset --hard origin/${PR_BRANCH}"
-                        sh "git switch ${PR_BRANCH}"
-                    } else{
-                        echo "Cleaning workspace..."
-                        sh "rm -rf '${WORKING_DIR}'"
+                script {
+                    echo "Directory Checking if it exists"
+                    if (!fileExists("${WORKING_DIR}")) {
+                        echo "Cloning repository..."
+                        sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                        sh "cd '${WORKING_DIR}' && git checkout ${PR_BRANCH}"
+                    } else {
+                        if (fileExists("${WORKING_DIR}/.git")) {
+                            //
+                            sh "rm -f '${WORKING_DIR}/.git/index.lock'"
+                            //
+                            echo "Fetching latest changes..."
+                            sh "git fetch origin"
+                            sh "git reset --hard origin/${PR_BRANCH}"
+                            sh "git switch ${PR_BRANCH}"
+                        } else{
+                            echo "Cleaning workspace..."
+                            sh "rm -rf '${WORKING_DIR}'"
 
+                        }
                     }
                 }
 
