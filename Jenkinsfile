@@ -82,11 +82,14 @@ pipeline {
                             sh "git reset --hard origin/${PR_BRANCH}"
                             sh "git switch ${PR_BRANCH}"
                         } else {
-                            echo "Cleaning workspace..."
-                            sh "rm -rf \"${WORKING_DIR}\""
+                            if (fileExists(WORKING_DIR)) {
+                                echo "Cleaning workspace..."
+                                sh "cd .. && rm -rf '${WORKING_DIR}'" //Avoid conflicting error between deleting directory and files and working same directory.
+                                sh "mkdir -p '${WORKING_DIR}'" // Ensure WORKING_DIR exists
+                            }
                             echo "Cloning repository..."
                             sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                            sh "git switch ${PR_BRANCH}"
+                            sh "cd '${WORKING_DIR}' && git switch ${PR_BRANCH}"
                         }
                                             
                         echo "Checking if branch is up to date..."
