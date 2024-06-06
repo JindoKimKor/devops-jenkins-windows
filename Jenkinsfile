@@ -183,7 +183,7 @@ pipeline {
         stage('Build Project') {
             steps {
                 echo "Building Unity project..."
-                sh "if not exist \"${WORKING_DIR}/Assets/Editor/\" mkdir -p \"${WORKING_DIR}/Assets/Editor/\" " //The following line assumed this folder exists in every project, adding check to ensure it does.
+                sh """if not exist \"${WORKING_DIR}/Assets/Editor/\" mkdir -p \"${WORKING_DIR}/Assets/Editor/\" """ //The following line assumed this folder exists in every project, adding check to ensure it does.
                 sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
 
                 retry (5) {
