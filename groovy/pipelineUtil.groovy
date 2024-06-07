@@ -69,6 +69,8 @@ def getUnityExecutable(workspace, workingDir) {
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
 def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
+    //setup for commands/executable
+
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
 
     def reportSettings = (enableReporting) ? """ \
@@ -78,18 +80,22 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -coverageResultsPath \"${workingDir}/coverage_results\" \
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
-    def exitCode = sh(script: """
-        \"${unityExecutable}\" \\
-        -runTests \\
-        -batchmode \\
-        -nographics \\
-        -buildTarget WebGL \\
-        -testPlatform ${testType} \\
-        -projectPath \"${workingDir}\" \\
-        -logFile \"${logFile}\"${reportSettings} \\
-        -quit
-        """, returnStatus: true)
+    def flags = "-runTests \
+        -batchmode \
+        -nographics \
+        -testPlatform ${testType} \
+        -projectPath \"${workingDir}\" \
+        -logFile \"${logFile}\"${reportSettings}"
 
+    if(testType == "PlayMode")
+    {
+        flags += " -testCategory BuildServer"
+    }
+
+    echo "Flags set to: ${flags}"
+
+    def exitCode = sh (script: """\"${unityExecutable}\" \
+        ${flags}""", returnStatus: true)
 
     // We only want to fail a build with failing tests if it is a deployment build.
     if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
