@@ -64,16 +64,41 @@ pipeline {
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                 }
 
-                echo "Cleaning workspace..."
-                sh "rm -rf \"${WORKING_DIR}\""
+                script {
+                    echo "Directory Checking if it exists"
+                    if (!fileExists("${WORKING_DIR}")) {
+                        echo "Cloning repository..."
+                        sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                        dir ("${WORKING_DIR}") {
+                            sh "git checkout ${PR_BRANCH}"
+                        }                        
+                    } else {
+                        if (fileExists("${WORKING_DIR}/.git")) {
+                            //
+                            sh "rm -f '${WORKING_DIR}/.git/index.lock'"
+                            //
 
-                echo "Pulling PR branch..."
-                sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                            echo "Fetching latest changes..."
+                            dir ("${WORKING_DIR}") {                            
+                            sh "git fetch origin"
+                            sh "git reset --hard origin/${PR_BRANCH}"
+                            sh "git checkout ${PR_BRANCH}"
+                            }
+                        } else{
+                            echo "Cleaning workspace..."
+                            sh "rm -rf '${WORKING_DIR}'"
+                            echo "Cloning repository..."
+                            sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                            dir ("${WORKING_DIR}") {
+                            sh "git checkout ${PR_BRANCH}"
+                            }   
+                        }
+                    }
+                }
+
                 dir ("${WORKING_DIR}") {
-                    sh "git checkout ${PR_BRANCH}"
-                
-                    echo "Checking if branch is up to date..."
-                    script {
+                    script {                                           
+                        echo "Checking if branch is up to date..."
                         if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
                             echo "Branch is up to date."
                         }
@@ -105,7 +130,7 @@ pipeline {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
                     sh "mkdir -p test_results/EditMode-report"
-                    sh "mkdir coverage_results"
+                    sh "mkdir -p coverage_results"
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
 
@@ -179,7 +204,7 @@ pipeline {
                 }
             }
         }
-        // Builds the project and saves it.
+        //Builds the project and saves it.
         stage('Build Project') {
             steps {
                 echo "Building Unity project..."
