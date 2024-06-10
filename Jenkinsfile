@@ -121,7 +121,7 @@ pipeline {
                 echo "Running Unity in batch mode to setup initial files..."
                 script {
                     def logFile = "${ORIGINAL_PROJECT_DIR}/batch_mode_execution.log"
-                    def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\""
+                    def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
                     
                     echo "Flags set to: ${flags}"
                     
