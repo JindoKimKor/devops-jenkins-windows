@@ -37,7 +37,8 @@ pipeline {
         )
     }
 
-    environment { 
+    environment {
+        ORIGINAL_PROJECT_DIR = "${WORKSPACE}/Original" 
         WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
@@ -65,38 +66,33 @@ pipeline {
                 }
 
                 script {
-                    echo "Directory Checking if it exists"
-                    if (!fileExists("${WORKING_DIR}")) {
+                    echo "Directory Checking if it original project exists"
+                    if (!fileExists("${ORIGINAL_PROJECT_DIR}")) {
                         echo "Cloning repository..."
-                        sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                        dir ("${WORKING_DIR}") {
-                            sh "git checkout ${PR_BRANCH}"
-                        }                        
-                    } else {
-                        if (fileExists("${WORKING_DIR}/.git")) {
-                            //
-                            sh "rm -f '${WORKING_DIR}/.git/index.lock'"
-                            //
+                        sh "git clone ${REPO_SSH} \"${ORIGINAL_PROJECT_DIR}\""
+                        
+                    } else { // if ORIGINAL_PROJECT_DIR exist
+                        if (fileExists("${ORIGINAL_PROJECT_DIR}/.git")) {
+                            sh "rm -f '${ORIGINAL_PROJECT_DIR}/.git/index.lock'"
 
                             echo "Fetching latest changes..."
-                            dir ("${WORKING_DIR}") {                            
+                            dir ("${ORIGINAL_PROJECT_DIR}") {                            
                             sh "git fetch origin"
                             sh "git reset --hard origin/${PR_BRANCH}"
-                            sh "git checkout ${PR_BRANCH}"
                             }
                         } else{
                             echo "Cleaning workspace..."
-                            sh "rm -rf '${WORKING_DIR}'"
+                            sh "rm -rf '${ORIGINAL_PROJECT_DIR}'"
                             echo "Cloning repository..."
-                            sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
-                            dir ("${WORKING_DIR}") {
-                            sh "git checkout ${PR_BRANCH}"
-                            }   
+                            sh "git clone ${REPO_SSH} \"${ORIGINAL_PROJECT_DIR}\""   
                         }
+                    }
+                    dir ("${ORIGINAL_PROJECT_DIR}") {
+                        sh "git checkout ${PR_BRANCH}"
                     }
                 }
 
-                dir ("${WORKING_DIR}") {
+                dir ("${ORIGINAL_PROJECT_DIR}") {
                     script {                                           
                         echo "Checking if branch is up to date..."
                         if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
@@ -119,8 +115,26 @@ pipeline {
 
                 echo "Identifying Unity version..."
                 script {
-                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, WORKING_DIR)
+                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, ORIGINAL_PROJECT_DIR)
                 }
+
+                echo "Running Unity in batch mode to setup initial files..."
+                script {
+                    def logFile = "${ORIGINAL_PROJECT_DIR}/batch_mode_execution.log"
+                    def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\""
+                    
+                    echo "Flags set to: ${flags}"
+                    
+                    // Execute Unity in batch mode
+                    def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
+                    
+                    // Handle exit code
+                    if (exitCode != 0) {
+                        sh "exit ${exitCode}"
+                    }
+                }
+                echo "Copying original project to working directory..."
+                sh "cp -r ${ORIGINAL_PROJECT_DIR} ${WORKING_DIR}"
             }
         }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
