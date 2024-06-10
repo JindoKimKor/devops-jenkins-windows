@@ -134,7 +134,13 @@ pipeline {
                     }
                 }
                 echo "Copying original project to working directory..."
-                sh "cp -r ${ORIGINAL_PROJECT_DIR} ${WORKING_DIR}"
+                script {
+                    def src = "${ORIGINAL_PROJECT_DIR}/"
+                    def dst = "${WORKING_DIR}/"
+                    
+                    // Use `cp` command with correct syntax for directories
+                    sh "cp -r \"${src}\" \"${dst}\""
+                }
             }
         }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
