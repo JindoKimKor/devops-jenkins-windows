@@ -87,9 +87,6 @@ pipeline {
                             sh "git clone ${REPO_SSH} \"${ORIGINAL_PROJECT_DIR}\""   
                         }
                     }
-                    dir ("${ORIGINAL_PROJECT_DIR}") {
-                        sh "git checkout ${PR_BRANCH}"
-                    }
                 }
 
                 dir ("${ORIGINAL_PROJECT_DIR}") {
@@ -117,29 +114,35 @@ pipeline {
                 script {
                     env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, ORIGINAL_PROJECT_DIR)
                 }
-
+                    
                 echo "Running Unity in batch mode to setup initial files..."
-                script {
-                    def logFile = "${ORIGINAL_PROJECT_DIR}/batch_mode_execution.log"
-                    def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
-                    
-                    echo "Flags set to: ${flags}"
-                    
-                    // Execute Unity in batch mode
-                    def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
-                    
-                    // Handle exit code
-                    if (exitCode != 0) {
-                        sh "exit ${exitCode}"
+                dir ("${ORIGINAL_PROJECT_DIR}") {
+                    script {
+                        sh "git checkout ${PR_BRANCH}"
+                        def logFile = "${ORIGINAL_PROJECT_DIR}/batch_mode_execution.log"
+                        def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
+                        
+                        echo "Flags set to: ${flags}"
+                        
+                        // Execute Unity in batch mode
+                        def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
+                        
+                        // Handle exit code
+                        if (exitCode != 0) {
+                            sh "exit ${exitCode}"
+                        }
                     }
                 }
                 echo "Copying original project to working directory..."
-                script {
-                    def src = "${ORIGINAL_PROJECT_DIR}/"
-                    def dst = "${WORKING_DIR}/"
-                    
-                    // Use `cp` command with correct syntax for directories
-                    sh "cp -r \"${src}\" \"${dst}\""
+                dir ("${ORIGINAL_PROJECT_DIR}") {
+                    script {
+                        sh "git checkout ${PR_BRANCH}"
+                        def src = "${ORIGINAL_PROJECT_DIR}/"
+                        def dst = "${WORKING_DIR}/"
+                        
+                        // Use `cp` command with correct syntax for directories
+                        sh "cp -r \"${src}\" \"${dst}\""
+                    }
                 }
             }
         }
