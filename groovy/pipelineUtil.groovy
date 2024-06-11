@@ -68,7 +68,7 @@ def getUnityExecutable(workspace, workingDir) {
 }
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
-def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploymentBuild) {
+def runUnityTests(unityExecutable, workingDir, origianlProjectDir, testType, enableReporting, deploymentBuild) {
     //setup for commands/executable
 
     def logFile = "${workingDir}/test_results/${testType}-tests.log"
@@ -84,7 +84,7 @@ def runUnityTests(unityExecutable, workingDir, testType, enableReporting, deploy
         -batchmode \
         -nographics \
         -testPlatform ${testType} \
-        -projectPath \"${workingDir}\" \
+        -projectPath \"${origianlProjectDir}\" \
         -logFile \"${logFile}\"${reportSettings}"
 
     if(testType == "PlayMode")
@@ -150,14 +150,14 @@ def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
 }
 
 // Builds a Unity project.
-def buildProject(workingDir, unityExecutable) {
+def buildProject(workingDir, origianlProjectDir, unityExecutable) {
     def logFile = "${workingDir}/build.log"
 
     def exitCode = sh (script:"""\"${unityExecutable}\" \
         -quit \
         -batchmode \
         -nographics \
-        -projectPath \"${workingDir}\" \
+        -projectPath \"${origianlProjectDir}\" \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)

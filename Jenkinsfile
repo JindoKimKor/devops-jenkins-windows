@@ -38,7 +38,7 @@ pipeline {
     }
 
     environment {
-        ORIGINAL_PROJECT_DIR = "${WORKSPACE}/Original" 
+        ORIGINAL_PROJECT_DIR = "${WORKSPACE}/Unity_Project" 
         WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
@@ -133,17 +133,6 @@ pipeline {
                         }
                     }
                 }
-                echo "Copying original project to working directory..."
-                dir ("${ORIGINAL_PROJECT_DIR}") {
-                    script {
-                        sh "git checkout ${PR_BRANCH}"
-                        def src = "${ORIGINAL_PROJECT_DIR}/"
-                        def dst = "${WORKING_DIR}/"
-                        
-                        // Use `cp` command with correct syntax for directories
-                        sh "cp -r \"${src}\" \"${dst}\""
-                    }
-                }
             }
         }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
@@ -151,11 +140,11 @@ pipeline {
         stage('EditMode Tests') {
             steps {
                 echo "Running EditMode tests..."
-                dir ("${WORKING_DIR}") {
-                    sh "mkdir -p test_results/EditMode-report"
-                    sh "mkdir -p coverage_results"
+                dir ("${ORIGINAL_PROJECT_DIR}") {
+                    sh "mkdir -p ${WORKING_DIR}/test_results/EditMode-report"
+                    sh "mkdir -p ${WORKING_DIR}/coverage_results"
                     script {
-                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, true, false)
+                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
 
                         // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
                         // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
@@ -180,11 +169,11 @@ pipeline {
         stage('PlayMode Tests in Editor') {
             steps {
                 echo "Running PlayMode tests in Editor environment..."
-                dir ("${WORKING_DIR}") {
-                    sh "mkdir -p test_results/PlayMode-report"
+                dir ("${ORIGINAL_PROJECT_DIR}") {
+                    sh "mkdir -p ${WORKING_DIR}/test_results/PlayMode-report"
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, true, false)
+                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
 
                             waitUntil {
                                 def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/PlayMode-tests.log")
@@ -206,7 +195,7 @@ pipeline {
         stage('Generate Code Coverage Report') {
             steps {
                 echo "Generating code coverage report..."
-                dir("${WORKING_DIR}") {
+                dir("${ORIGINAL_PROJECT_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
                     -batchmode \
                     -buildTarget WebGL \
@@ -231,12 +220,12 @@ pipeline {
         stage('Build Project') {
             steps {
                 echo "Building Unity project..."
-                sh "mkdir -p \"${WORKING_DIR}/Assets/Editor/\"" //The following line assumed this folder exists in every project, adding check to ensure it does.
-                sh "cp Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+                sh "mkdir -p \"${ORIGINAL_PROJECT_DIR}/Assets/Editor/\"" //The following line assumed this folder exists in every project, adding check to ensure it does.
+                sh "cp Builder.cs \"${ORIGINAL_PROJECT_DIR}/Assets/Editor/\""
 
                 retry (5) {
                     script {
-                        util.buildProject(WORKING_DIR, UNITY_EXECUTABLE)
+                        util.buildProject(WORKING_DIR, ORIGINAL_PROJECT_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }
