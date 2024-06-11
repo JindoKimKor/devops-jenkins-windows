@@ -139,10 +139,12 @@ pipeline {
         // Sends the test results to Bitbucket once the tests complete.
         stage('EditMode Tests') {
             steps {
+                dir ("${WORKING_DIR}") {
+                    sh "mkdir -p test_results/EditMode-report"
+                    sh "mkdir -p coverage_results"
+                }
                 echo "Running EditMode tests..."
                 dir ("${ORIGINAL_PROJECT_DIR}") {
-                    sh "mkdir -p ${WORKING_DIR}/test_results/EditMode-report"
-                    sh "mkdir -p ${WORKING_DIR}/coverage_results"
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
 
