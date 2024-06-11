@@ -94,7 +94,7 @@ pipeline {
                 echo "Running EditMode tests..."
                 dir ("${WORKING_DIR}") {
                     script {
-                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, editMode, false, true)
+                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, WORKING_DIR, editMode, false, true)
                     }
                 }
             }
@@ -107,7 +107,7 @@ pipeline {
                 dir ("${WORKING_DIR}") {
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, playMode, false, true)
+                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, WORKING_DIR, playMode, false, true)
                         }
                     }
                 }
