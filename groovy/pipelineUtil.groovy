@@ -119,6 +119,8 @@ def convertTestResultsToHtml(workingDir, testType) {
         def testReportGenerated = consoleOutput =~ /Test report generated:/
 
         if (!testReportGenerated) {
+            println "Error: Test report was not generated for ${testType}. Exit code: ${exitCode}"
+            println "Log Output: ${consoleOutput}"
             sh "exit 1"
         }
     }

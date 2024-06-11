@@ -177,7 +177,7 @@ pipeline {
                 dir ("${ORIGINAL_PROJECT_DIR}") {
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
+                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, playMode, true, false)
 
                             waitUntil {
                                 def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/PlayMode-tests.log")
@@ -202,7 +202,7 @@ pipeline {
                 dir("${ORIGINAL_PROJECT_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
                     -batchmode \
-                    -buildTarget WebGL \
+                    -nographics \
                     -logFile \"${WORKING_DIR}/coverage_results/coverage_report.log\" \
                     -projectPath . \
                     -debugCodeOptimization \
