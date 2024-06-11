@@ -170,9 +170,11 @@ pipeline {
         // PlayMode tests need to be run once in the editor to generate the overall coverage report.
         stage('PlayMode Tests in Editor') {
             steps {
+                dir ("${WORKING_DIR}") {
+                    sh "mkdir -p test_results/PlayMode-report"
+                }
                 echo "Running PlayMode tests in Editor environment..."
                 dir ("${ORIGINAL_PROJECT_DIR}") {
-                    sh "mkdir -p ${WORKING_DIR}/test_results/PlayMode-report"
                     retry (5) {
                         script {
                             util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
