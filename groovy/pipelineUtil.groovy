@@ -179,8 +179,8 @@ def postBuild(status) {
     \"sudo mkdir -p /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER} \
     && sudo chown vconadmin:vconadmin /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""""
 
-    if (fileExists("${env.WORKING_DIR}/logs.html")) {
-        sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${env.WORKING_DIR}/logs.html\" \
+    if (fileExists("${env.REPORT_DIR}/logs.html")) {
+        sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${env.REPORT_DIR}/logs.html\" \
     \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER}\""
     }
 
