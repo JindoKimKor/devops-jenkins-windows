@@ -1,13 +1,13 @@
 // Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
 // This is in its own method to avoid pipeline failure if the branch needs updating.
-def isBranchUpToDate(destination) {
-    return sh (script: "git merge-base --is-ancestor origin/${destination} @", returnStatus: true)
+def isBranchUpToDate(destinationBranch) {
+    return sh (script: "git merge-base --is-ancestor origin/${destinationBranch} @", returnStatus: true)
 }
 
 // Attempts to merge the destination branch into the current branch.
 // This is in its own method to avoid automatic pipeline failure if there are merge errors. We want to alert the user of the merge errors.
-def tryMerge(destination) {
-    return sh (script: "git merge origin/${destination}", returnStatus: true)
+def tryMerge(destinationBranch) {
+    return sh (script: "git merge origin/${destinationBranch}", returnStatus: true)
 }
 
 // Retrieves the full commit hash from Bitbucket Cloud API, since the webhook only gives us the short version.
@@ -21,13 +21,13 @@ def sendBuildStatus(workspace, state, commitHash, deployment = "") {
 }
 
 // Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
-def sendTestReport(workspace, workingDir, commitHash, testMode) {
-    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${commitHash}\' \'${workingDir}/test_results\' \'${testMode}\'"
+def sendTestReport(workspace, reportDir, commitHash, testMode) {
+    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${commitHash}\' \'${reportDir}/test_results\' \'${testMode}\'"
 }
 
 // Sends a code coverage report to Bitbucket Cloud API.
-def sendCoverageReport(workspace, workingDir, commitHash) {
-    sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${commitHash}\' \'${workingDir}/coverage_results/Report\'"
+def sendCoverageReport(workspace, reportDir, commitHash) {
+    sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${commitHash}\' \'${reportDir}/coverage_results/Report\'"
 }
 
 // Parses the given log for any errors recorded in a text file of known errors. Not currently in use.
@@ -50,12 +50,12 @@ def checkIfTestStageExitCodeShouldExit(workspace, exitCode) {
 }
 
 // Checks if a Unity executable exists and returns its path. Downloads the missing Unity version if not installed.
-def getUnityExecutable(workspace, workingDir) {
-    def unityExecutable = "${sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${workingDir}\' executable-path", returnStdout: true)}"
+def getUnityExecutable(workspace, projectDir) {
+    def unityExecutable = "${sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${projectDir}\' executable-path", returnStdout: true)}"
 
     if (!fileExists(unityExecutable)) {
-        def version = sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${workingDir}\' version", returnStdout: true)
-        def revision = sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${workingDir}\' revision", returnStdout: true)
+        def version = sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${projectDir}\' version", returnStdout: true)
+        def revision = sh (script: "python \'${workspace}/python/get_unity_version.py\' \'${projectDir}\' revision", returnStdout: true)
 
         echo "Missing Unity Editor version ${version}. Installing now..."
         sh "\"C:\\Program Files\\Unity Hub\\Unity Hub.exe\" -- --headless install --version ${version} --changeset ${revision}"
@@ -68,23 +68,23 @@ def getUnityExecutable(workspace, workingDir) {
 }
 
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
-def runUnityTests(unityExecutable, workingDir, origianlProjectDir, testType, enableReporting, deploymentBuild) {
+def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReporting, deploymentBuild) {
     //setup for commands/executable
 
-    def logFile = "${workingDir}/test_results/${testType}-tests.log"
+    def logFile = "${reportDir}/test_results/${testType}-tests.log"
 
     def reportSettings = (enableReporting) ? """ \
-        -testResults \"${workingDir}/test_results/${testType}-results.xml\" \
+        -testResults \"${reportDir}/test_results/${testType}-results.xml\" \
         -debugCodeOptimization \
         -enableCodeCoverage \
-        -coverageResultsPath \"${workingDir}/coverage_results\" \
+        -coverageResultsPath \"${reportDir}/coverage_results\" \
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
     def flags = "-runTests \
         -batchmode \
         -nographics \
         -testPlatform ${testType} \
-        -projectPath \"${origianlProjectDir}\" \
+        -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\"${reportSettings}"
 
     if(testType == "PlayMode")
@@ -104,13 +104,13 @@ def runUnityTests(unityExecutable, workingDir, origianlProjectDir, testType, ena
 }
 
 // Converts a Unity test result XML file to an HTML file.
-def convertTestResultsToHtml(workingDir, testType) {
+def convertTestResultsToHtml(reportDir, testType) {
     // Writing the console output to a file because Jenkins' returnStdout still causes the pipeline to fail if the exit code != 0
     def exitCode = sh (script: """dotnet C:/UnityTestRunnerResultsReporter/UnityTestRunnerResultsReporter.dll \
-        --resultsPath=\"${workingDir}/test_results\" \
+        --resultsPath=\"${reportDir}/test_results\" \
         --resultXMLName=${testType}-results.xml \
         --unityLogName=${testType}-tests.log \
-        --reportdirpath=\"${workingDir}/test_results/${testType}-report\" > UnityTestRunnerResultsReporter.log""", returnStatus: true)
+        --reportdirpath=\"${reportDir}/test_results/${testType}-report\" > UnityTestRunnerResultsReporter.log""", returnStatus: true)
     
     // This Unity tool throws an error if any tests are failing, yet still generates the report.
     // If the tests are failing, we want to avoid failing the pipeline so we can access the report.
@@ -152,14 +152,14 @@ def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
 }
 
 // Builds a Unity project.
-def buildProject(workingDir, origianlProjectDir, unityExecutable) {
-    def logFile = "${workingDir}/build.log"
+def buildProject(reportDir, projectDir, unityExecutable) {
+    def logFile = "${reportDir}/build.log"
 
     def exitCode = sh (script:"""\"${unityExecutable}\" \
         -quit \
         -batchmode \
         -nographics \
-        -projectPath \"${origianlProjectDir}\" \
+        -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)

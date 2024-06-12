@@ -38,58 +38,65 @@ pipeline {
     }
 
     environment {
-        ORIGINAL_PROJECT_DIR = "${WORKSPACE}/Unity_Project" 
-        WORKING_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
+        PROJECT_DIR = "${WORKSPACE}/Unity_Project" 
+        REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
     }
 
     stages {
-        // Prepares the workspace for the build by telling Bitbucket the build is in progress, cleaning the working directory,
-        // pulling the PR branch and checking if it is up to date, attempting to merge the destination branch into the PR branch if it is not,
-        // and finally indentifying which version of the Unity editor the project uses and downloading it to the VM if it is not already installed.
+        // Prepare Workspace: Environment Setup, Workspace Preparation(Branch Management), Unity Setup, Initial running the project on Unity Editor
         stage('Prepare Workspace') {
+            // Environment Setup
             environment {
                 REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
                 DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
             }
             steps {
+                //send 'In Progress' status to Bitbucket
                 script {
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
-
                     echo "Sending \'In Progress\' status to Bitbucket..."
                     env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
                     env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                 }
-
+                
+                // Workspace Preparation 
                 script {
+                    // Scenario 1: Project directory does not exist on the VM
+                    // Action: Clone the repository to initialize the project directory.
                     echo "Directory Checking if it original project exists"
-                    if (!fileExists("${ORIGINAL_PROJECT_DIR}")) {
+                    if (!fileExists("${PROJECT_DIR}")) {
                         echo "Cloning repository..."
-                        sh "git clone ${REPO_SSH} \"${ORIGINAL_PROJECT_DIR}\""
+                        sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
                         
-                    } else { // if ORIGINAL_PROJECT_DIR exist
-                        if (fileExists("${ORIGINAL_PROJECT_DIR}/.git")) {
-                            sh "rm -f '${ORIGINAL_PROJECT_DIR}/.git/index.lock'"
+                    } else {
+                        // Scenario 2: Project directory exists but .git directory is missing or corrupted
+                        // Action: Clean the directory and clone the repository afresh.
+                        if (fileExists("${PROJECT_DIR}/.git")) {
+                            sh "rm -f '${PROJECT_DIR}/.git/index.lock'"
 
                             echo "Fetching latest changes..."
-                            dir ("${ORIGINAL_PROJECT_DIR}") {                            
+                            dir ("${PROJECT_DIR}") {                            
                             sh "git fetch origin"
                             sh "git reset --hard origin/${PR_BRANCH}"
                             }
-                        } else{
+                        } 
+                        // Scenario 3: Project directory and .git directory exist
+                        // Action: Remove any existing git index lock and fetch the latest updates.
+                        else { 
                             echo "Cleaning workspace..."
-                            sh "rm -rf '${ORIGINAL_PROJECT_DIR}'"
+                            sh "rm -rf '${PROJECT_DIR}'"
                             echo "Cloning repository..."
-                            sh "git clone ${REPO_SSH} \"${ORIGINAL_PROJECT_DIR}\""   
+                            sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""   
                         }
                     }
                 }
 
-                dir ("${ORIGINAL_PROJECT_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     script {                                           
                         echo "Checking if branch is up to date..."
                         if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
@@ -109,18 +116,19 @@ pipeline {
                         }
                     }
                 }   
-
+                // Unity Setup: Identify the version of Unity Editor for the project
                 echo "Identifying Unity version..."
                 script {
-                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, ORIGINAL_PROJECT_DIR)
+                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, PROJECT_DIR)
                 }
-                    
+
+                // Initial running the project on Unity Editor    
                 echo "Running Unity in batch mode to setup initial files..."
-                dir ("${ORIGINAL_PROJECT_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     script {
                         sh "git checkout ${PR_BRANCH}"
-                        def logFile = "${ORIGINAL_PROJECT_DIR}/batch_mode_execution.log"
-                        def flags = "-batchmode -nographics -projectPath \"${ORIGINAL_PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
+                        def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
+                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
                         
                         echo "Flags set to: ${flags}"
                         
@@ -139,29 +147,29 @@ pipeline {
         // Sends the test results to Bitbucket once the tests complete.
         stage('EditMode Tests') {
             steps {
-                dir ("${WORKING_DIR}") {
+                dir ("${REPORT_DIR}") {
                     sh "mkdir -p test_results/EditMode-report"
                     sh "mkdir -p coverage_results"
                 }
                 echo "Running EditMode tests..."
-                dir ("${ORIGINAL_PROJECT_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     script {
-                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, editMode, true, false)
+                        util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, true, false)
 
                         // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
                         // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
                         // because the file is currently open elsewhere.
                         waitUntil {
-                            def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/EditMode-tests.log")
+                            def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/EditMode-tests.log")
 
                             fileAvailable == 0
                         }
 
-                        util.convertTestResultsToHtml(WORKING_DIR, editMode)
-                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${editMode}-report", editMode)
+                        util.convertTestResultsToHtml(REPORT_DIR, editMode)
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${editMode}-report", editMode)
 
                         echo "Sending EditMode test results to Bitbucket..."
-                        util.sendTestReport(WORKSPACE, WORKING_DIR, COMMIT_HASH, editMode)
+                        util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, editMode)
                     }
                 }
             }
@@ -170,25 +178,25 @@ pipeline {
         // PlayMode tests need to be run once in the editor to generate the overall coverage report.
         stage('PlayMode Tests in Editor') {
             steps {
-                dir ("${WORKING_DIR}") {
+                dir ("${REPORT_DIR}") {
                     sh "mkdir -p test_results/PlayMode-report"
                 }
                 echo "Running PlayMode tests in Editor environment..."
-                dir ("${ORIGINAL_PROJECT_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, ORIGINAL_PROJECT_DIR, playMode, true, false)
+                            util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, true, false)
 
                             waitUntil {
-                                def fileAvailable = util.checkIfFileIsLocked("${WORKING_DIR}/test_results/PlayMode-tests.log")
+                                def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/PlayMode-tests.log")
                                 fileAvailable == 0
                             }   
 
-                            util.convertTestResultsToHtml(WORKING_DIR, playMode)
-                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/test_results/${playMode}-report", playMode)
+                            util.convertTestResultsToHtml(REPORT_DIR, playMode)
+                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${playMode}-report", playMode)
 
                             echo "Sending PlayMode test results to Bitbucket..."
-                            util.sendTestReport(WORKSPACE, WORKING_DIR, COMMIT_HASH, playMode)
+                            util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, playMode)
                         }
                     }
                 }
@@ -199,23 +207,23 @@ pipeline {
         stage('Generate Code Coverage Report') {
             steps {
                 echo "Generating code coverage report..."
-                dir("${ORIGINAL_PROJECT_DIR}") {
+                dir("${PROJECT_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
                     -batchmode \
                     -nographics \
-                    -logFile \"${WORKING_DIR}/coverage_results/coverage_report.log\" \
+                    -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
                     -projectPath . \
                     -debugCodeOptimization \
                     -enableCodeCoverage \
-                    -coverageResultsPath \"${WORKING_DIR}/coverage_results\" \
+                    -coverageResultsPath \"${REPORT_DIR}/coverage_results\" \
                     -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics;useProjectSettings\" \
                     -quit"""
 
                     script {
-                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${WORKING_DIR}/coverage_results/Report", "CodeCoverage")
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/coverage_results/Report", "CodeCoverage")
 
                         echo "Sending code coverage report to Bitbucket..."
-                        util.sendCoverageReport(WORKSPACE, WORKING_DIR, COMMIT_HASH)
+                        util.sendCoverageReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
                     }   
                 }
             }
@@ -224,12 +232,12 @@ pipeline {
         stage('Build Project') {
             steps {
                 echo "Building Unity project..."
-                sh "mkdir -p \"${ORIGINAL_PROJECT_DIR}/Assets/Editor/\"" //The following line assumed this folder exists in every project, adding check to ensure it does.
-                sh "cp Builder.cs \"${ORIGINAL_PROJECT_DIR}/Assets/Editor/\""
+                sh "mkdir -p \"${PROJECT_DIR}/Assets/Editor/\"" //The following line assumed this folder exists in every project, adding check to ensure it does.
+                sh "cp Builder.cs \"${PROJECT_DIR}/Assets/Editor/\""
 
                 retry (5) {
                     script {
-                        util.buildProject(WORKING_DIR, ORIGINAL_PROJECT_DIR, UNITY_EXECUTABLE)
+                        util.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }

@@ -28,7 +28,8 @@ pipeline {
     }
 
     environment {
-        WORKING_DIR = "${WORKSPACE}/Deployment"
+        PROJECT_DIR = "${WORKSPACE}/Deployment"
+        REPORT_DIR = "${WORKSPACE}/Deployment"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
     }
@@ -60,13 +61,13 @@ pipeline {
             }
             steps {
                 script {
-                    if (!fileExists(WORKING_DIR)) {
+                    if (!fileExists(PROJECT_DIR)) {
                         echo "First time running pipeline. Cloning main branch..."
-                        sh "git clone ${REPO_SSH} \"${WORKING_DIR}\""
+                        sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
                     }
                 }
                 
-                dir ("${WORKING_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     echo "Cleaning project..."
                     sh "git reset --hard HEAD"
                     echo "Pulling latest version of default branch..."
@@ -83,7 +84,7 @@ pipeline {
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
 
                     echo "Identifying Unity version..."
-                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, WORKING_DIR)
+                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, PROJECT_DIR)
                 }
             }
         }
@@ -92,9 +93,9 @@ pipeline {
         stage ('EditMode Tests') {
             steps {
                 echo "Running EditMode tests..."
-                dir ("${WORKING_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     script {
-                        util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, WORKING_DIR, editMode, false, true)
+                        util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, false, true)
                     }
                 }
             }
@@ -104,10 +105,10 @@ pipeline {
         stage ('PlayMode Tests In Editor'){
             steps {
                 echo "Running PlayMode tests..."
-                dir ("${WORKING_DIR}") {
+                dir ("${PROJECT_DIR}") {
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, WORKING_DIR, WORKING_DIR, playMode, false, true)
+                            util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, false, true)
                         }
                     }
                 }
@@ -117,11 +118,11 @@ pipeline {
         stage ('Build Project') {
             steps {
                 echo "Building Unity project for WebGL..."
-                sh "mv Builder.cs \"${WORKING_DIR}/Assets/Editor/\""
+                sh "mv Builder.cs \"${PROJECT_DIR}/Assets/Editor/\""
 
                 retry (5) {
                     script {
-                        util.buildProject(WORKING_DIR, WORKING_DIR, UNITY_EXECUTABLE)
+                        util.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }
@@ -134,7 +135,7 @@ pipeline {
                 script {
                     sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
                     && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
-                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${WORKING_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
                 }
             }
         }
