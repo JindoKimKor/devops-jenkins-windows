@@ -74,8 +74,8 @@ pipeline {
                         sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
                         
                     } else {
-                        // Scenario 2: Project directory exists but .git directory is missing or corrupted
-                        // Action: Clean the directory and clone the repository afresh.
+                        // Scenario 2: Project directory and .git directory exist
+                        // Action: Remove any existing git index lock and fetch the latest updates.
                         if (fileExists("${PROJECT_DIR}/.git")) {
                             sh "rm -f '${PROJECT_DIR}/.git/index.lock'"
 
@@ -85,8 +85,8 @@ pipeline {
                             sh "git reset --hard origin/${PR_BRANCH}"
                             }
                         } 
-                        // Scenario 3: Project directory and .git directory exist
-                        // Action: Remove any existing git index lock and fetch the latest updates.
+                        // Scenario 3: Project directory exists but .git directory is missing or corrupted
+                        // Action: Clean the directory and clone the repository afresh.
                         else { 
                             echo "Cleaning workspace..."
                             sh "rm -rf '${PROJECT_DIR}'"
