@@ -7,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 #Environment variables:
 jenkins_token = os.getenv('JENKINS_API_KEY')
 build_url = os.getenv('BUILD_URL')
-working_dir = os.getenv('WORKING_DIR')
+working_dir = os.getenv('REPORT_DIR')
 ticket = os.getenv('TICKET_NUMBER')
 workspace = os.getenv('WORKSPACE')
 
