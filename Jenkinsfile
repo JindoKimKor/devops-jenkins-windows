@@ -111,7 +111,6 @@ pipeline {
         -memorysetup-temp-allocator-size-gi-baking-worker=1048576 \
         -memorysetup-temp-allocator-size-gfx=1048576
         """.trim().replaceAll("\n", " ")
-
     }
 
     stages {
@@ -280,6 +279,7 @@ pipeline {
                 dir("${PROJECT_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
                     -batchmode \
+                    ${MEMORY_SETTING} \
                     -nographics \
                     -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
                     -projectPath . \

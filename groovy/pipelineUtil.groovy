@@ -80,12 +80,15 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         -coverageResultsPath \"${reportDir}/coverage_results\" \
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
-    def flags = "-runTests \
+    def flags = "-quit \
+        -runTests \
         -batchmode \
         -nographics \
         -testPlatform ${testType} \
         -projectPath \"${projectDir}\" \
-        -logFile \"${logFile}\"${reportSettings}"
+        -logFile \"${logFile}\" \
+        ${reportSettings} \
+        ${env.MEMORY_SETTING}"
 
     if(testType == "PlayMode")
     {
@@ -162,6 +165,7 @@ def buildProject(reportDir, projectDir, unityExecutable) {
         -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
+        ${env.MEMORY_SETTING} \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)
 
     if (exitCode != 0) {
