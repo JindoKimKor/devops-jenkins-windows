@@ -43,6 +43,75 @@ pipeline {
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
+
+        // Soft-Version of Memory Settings: This configuration moderately increases memory block sizes and bucket counts to reduce CPU usage without significantly increasing RAM consumption. It is suitable for scenarios where a balanced performance is needed without dramatically impacting RAM usage.
+        // MEMORY_SETTING = """
+        // -memorysetup-bucket-allocator-granularity=32 \
+        // -memorysetup-bucket-allocator-bucket-count=16 \
+        // -memorysetup-bucket-allocator-block-size=67108864 \
+        // -memorysetup-bucket-allocator-block-count=16 \
+        // -memorysetup-main-allocator-block-size=33554432 \
+        // -memorysetup-thread-allocator-block-size=33554432 \
+        // -memorysetup-gfx-main-allocator-block-size=33554432 \
+        // -memorysetup-gfx-thread-allocator-block-size=33554432 \
+        // -memorysetup-cache-allocator-block-size=8388608 \
+        // -memorysetup-typetree-allocator-block-size=4194304 \
+        // -memorysetup-profiler-bucket-allocator-granularity=32 \
+        // -memorysetup-profiler-bucket-allocator-bucket-count=16 \
+        // -memorysetup-profiler-bucket-allocator-block-size=67108864 \
+        // -memorysetup-profiler-bucket-allocator-block-count=16 \
+        // -memorysetup-profiler-allocator-block-size=33554432 \
+        // -memorysetup-profiler-editor-allocator-block-size=2097152 \
+        // -memorysetup-temp-allocator-size-main=33554432 \
+        // -memorysetup-job-temp-allocator-block-size=4194304 \
+        // -memorysetup-job-temp-allocator-block-size-background=2097152 \
+        // -memorysetup-job-temp-allocator-reduction-small-platforms=524288 \
+        // -memorysetup-allocator-temp-initial-block-size-main=524288 \
+        // -memorysetup-allocator-temp-initial-block-size-worker=524288 \
+        // -memorysetup-temp-allocator-size-background-worker=65536 \
+        // -memorysetup-temp-allocator-size-job-worker=524288 \
+        // -memorysetup-temp-allocator-size-preload-manager=67108864 \
+        // -memorysetup-temp-allocator-size-nav-mesh-worker=131072 \
+        // -memorysetup-temp-allocator-size-audio-worker=131072 \
+        // -memorysetup-temp-allocator-size-cloud-worker=65536 \
+        // -memorysetup-temp-allocator-size-gi-baking-worker=524288 \
+        // -memorysetup-temp-allocator-size-gfx=524288
+        // """.trim().replaceAll("\n", " ")
+
+        // Enhanced-Version of Memory Settings: This configuration aggressively increases memory block sizes and bucket counts to minimize CPU usage as much as possible, resulting in a significant increase in RAM consumption. It is ideal for high-performance scenarios where reducing CPU overhead is critical, and ample RAM is available.
+        MEMORY_SETTING = """
+        -memorysetup-bucket-allocator-granularity=64 \
+        -memorysetup-bucket-allocator-bucket-count=32 \
+        -memorysetup-bucket-allocator-block-size=134217728 \
+        -memorysetup-bucket-allocator-block-count=32 \
+        -memorysetup-main-allocator-block-size=67108864 \
+        -memorysetup-thread-allocator-block-size=67108864 \
+        -memorysetup-gfx-main-allocator-block-size=67108864 \
+        -memorysetup-gfx-thread-allocator-block-size=67108864 \
+        -memorysetup-cache-allocator-block-size=16777216 \
+        -memorysetup-typetree-allocator-block-size=8388608 \
+        -memorysetup-profiler-bucket-allocator-granularity=64 \
+        -memorysetup-profiler-bucket-allocator-bucket-count=32 \
+        -memorysetup-profiler-bucket-allocator-block-size=134217728 \
+        -memorysetup-profiler-bucket-allocator-block-count=32 \
+        -memorysetup-profiler-allocator-block-size=67108864 \
+        -memorysetup-profiler-editor-allocator-block-size=4194304 \
+        -memorysetup-temp-allocator-size-main=67108864 \
+        -memorysetup-job-temp-allocator-block-size=8388608 \
+        -memorysetup-job-temp-allocator-block-size-background=4194304 \
+        -memorysetup-job-temp-allocator-reduction-small-platforms=1048576 \
+        -memorysetup-allocator-temp-initial-block-size-main=1048576 \
+        -memorysetup-allocator-temp-initial-block-size-worker=1048576 \
+        -memorysetup-temp-allocator-size-background-worker=131072 \
+        -memorysetup-temp-allocator-size-job-worker=1048576 \
+        -memorysetup-temp-allocator-size-preload-manager=134217728 \
+        -memorysetup-temp-allocator-size-nav-mesh-worker=262144 \
+        -memorysetup-temp-allocator-size-audio-worker=262144 \
+        -memorysetup-temp-allocator-size-cloud-worker=131072 \
+        -memorysetup-temp-allocator-size-gi-baking-worker=1048576 \
+        -memorysetup-temp-allocator-size-gfx=1048576
+        """.trim().replaceAll("\n", " ")
+
     }
 
     stages {
@@ -128,11 +197,12 @@ pipeline {
                     script {
                         sh "git checkout ${PR_BRANCH}"
                         def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
-                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
+
+                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit ${MEMORY_SETTING}"
                         
                         echo "Flags set to: ${flags}"
                         
-                        // Execute Unity in batch mode
+                        // Execute Unity in batch mode with memory settings
                         def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
                         
                         // Handle exit code
