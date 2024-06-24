@@ -75,10 +75,10 @@ pipeline {
         // -memorysetup-temp-allocator-size-gfx=262144 \
         // Default version of memory setting
         MEMORY_SETTING = """
-        -memorysetup-il2cpp-main-allocator-block-size=2147483648 \
-        -memorysetup-il2cpp-thread-allocator-block-size=2147483648 \
+        -memorysetup-il2cpp-main-allocator-block-size=4294967296 \
+        -memorysetup-il2cpp-thread-allocator-block-size=4294967296 \
         -memorysetup-il2cpp-cache-allocator-block-size=536870912 \
-        -memorysetup-il2cpp-temp-allocator-size-main=2147483648 \
+        -memorysetup-il2cpp-temp-allocator-size-main=4294967296 \
         -memorysetup-il2cpp-temp-allocator-size-worker=536870912
         """.trim().replaceAll("\n", " ")
 
