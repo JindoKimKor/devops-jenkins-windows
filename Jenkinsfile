@@ -109,7 +109,12 @@ pipeline {
         -memorysetup-temp-allocator-size-audio-worker=524288 \
         -memorysetup-temp-allocator-size-cloud-worker=262144 \
         -memorysetup-temp-allocator-size-gi-baking-worker=2097152 \
-        -memorysetup-temp-allocator-size-gfx=2097152
+        -memorysetup-temp-allocator-size-gfx=2097152 \
+        -memorysetup-il2cpp-main-allocator-block-size=268435456 \
+        -memorysetup-il2cpp-thread-allocator-block-size=268435456 \
+        -memorysetup-il2cpp-cache-allocator-block-size=67108864 \
+        -memorysetup-il2cpp-temp-allocator-size-main=268435456 \
+        -memorysetup-il2cpp-temp-allocator-size-worker=67108864
         // """.trim().replaceAll("\n", " ")
     }
 
