@@ -75,11 +75,11 @@ pipeline {
         // -memorysetup-temp-allocator-size-gfx=262144 \
         // Default version of memory setting
         MEMORY_SETTING = """
-        -memorysetup-il2cpp-main-allocator-block-size=536870912 \
-        -memorysetup-il2cpp-thread-allocator-block-size=536870912 \
-        -memorysetup-il2cpp-cache-allocator-block-size=134217728 \
-        -memorysetup-il2cpp-temp-allocator-size-main=536870912 \
-        -memorysetup-il2cpp-temp-allocator-size-worker=134217728
+        -memorysetup-il2cpp-main-allocator-block-size=2147483648 \
+        -memorysetup-il2cpp-thread-allocator-block-size=2147483648 \
+        -memorysetup-il2cpp-cache-allocator-block-size=536870912 \
+        -memorysetup-il2cpp-temp-allocator-size-main=2147483648 \
+        -memorysetup-il2cpp-temp-allocator-size-worker=536870912
         """.trim().replaceAll("\n", " ")
 
         // Enhanced-Version of Memory Settings: This configuration aggressively increases memory block sizes and bucket counts to minimize CPU usage as much as possible, resulting in a significant increase in RAM consumption. It is ideal for high-performance scenarios where reducing CPU overhead is critical, and ample RAM is available.
