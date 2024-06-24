@@ -16,6 +16,8 @@ public class Builder
 
     static void BuildWebGL()
     {
+        PlayerSettings.WebGL.emscriptenArgs = "-O0 -s WASM_MEM_MAX=1024MB -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s ASYNCIFY_STACK_SIZE=64KB";
+
         BuildReport report = BuildPipeline.BuildPlayer(GetEnabledScenes(), "./Builds/", BuildTarget.WebGL, BuildOptions.None);
 
         if (report.summary.result == BuildResult.Succeeded) 
