@@ -17,7 +17,7 @@ public class Builder
     static void BuildWebGL()
     {
 
-        //PlayerSettings.WebGL.emscriptenArgs = "-O0 -s";
+        PlayerSettings.WebGL.emscriptenArgs = "-O0 -s";
         BuildReport report = BuildPipeline.BuildPlayer(GetEnabledScenes(), "./Builds/", BuildTarget.WebGL, BuildOptions.None);
 
         if (report.summary.result == BuildResult.Succeeded) 
