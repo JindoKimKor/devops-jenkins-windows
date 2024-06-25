@@ -147,89 +147,89 @@ pipeline {
         }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
         // Sends the test results to Bitbucket once the tests complete.
-        // stage('EditMode Tests') {
-        //     steps {
-        //         dir ("${REPORT_DIR}") {
-        //             sh "mkdir -p test_results/EditMode-report"
-        //             sh "mkdir -p coverage_results"
-        //         }
-        //         echo "Running EditMode tests..."
-        //         dir ("${PROJECT_DIR}") {
-        //             script {
-        //                 util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, true, false)
+        stage('EditMode Tests') {
+            steps {
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p test_results/EditMode-report"
+                    sh "mkdir -p coverage_results"
+                }
+                echo "Running EditMode tests..."
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, true, false)
 
-        //                 // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
-        //                 // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
-        //                 // because the file is currently open elsewhere.
-        //                 waitUntil {
-        //                     def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/EditMode-tests.log")
+                        // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
+                        // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
+                        // because the file is currently open elsewhere.
+                        waitUntil {
+                            def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/EditMode-tests.log")
 
-        //                     fileAvailable == 0
-        //                 }
+                            fileAvailable == 0
+                        }
 
-        //                 util.convertTestResultsToHtml(REPORT_DIR, editMode)
-        //                 util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${editMode}-report", editMode)
+                        util.convertTestResultsToHtml(REPORT_DIR, editMode)
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${editMode}-report", editMode)
 
-        //                 echo "Sending EditMode test results to Bitbucket..."
-        //                 util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, editMode)
-        //             }
-        //         }
-        //     }
-        // }
+                        echo "Sending EditMode test results to Bitbucket..."
+                        util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, editMode)
+                    }
+                }
+            }
+        }
         // Runs the project's PlayMode tests, and then generates a code coverage report.
         // PlayMode tests need to be run once in the editor to generate the overall coverage report.
-        // stage('PlayMode Tests in Editor') {
-        //     steps {
-        //         dir ("${REPORT_DIR}") {
-        //             sh "mkdir -p test_results/PlayMode-report"
-        //         }
-        //         echo "Running PlayMode tests in Editor environment..."
-        //         dir ("${PROJECT_DIR}") {
-        //             retry (5) {
-        //                 script {
-        //                     util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, true, false)
+        stage('PlayMode Tests in Editor') {
+            steps {
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p test_results/PlayMode-report"
+                }
+                echo "Running PlayMode tests in Editor environment..."
+                dir ("${PROJECT_DIR}") {
+                    retry (5) {
+                        script {
+                            util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, true, false)
 
-        //                     waitUntil {
-        //                         def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/PlayMode-tests.log")
-        //                         fileAvailable == 0
-        //                     }   
+                            waitUntil {
+                                def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/PlayMode-tests.log")
+                                fileAvailable == 0
+                            }   
 
-        //                     util.convertTestResultsToHtml(REPORT_DIR, playMode)
-        //                     util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${playMode}-report", playMode)
+                            util.convertTestResultsToHtml(REPORT_DIR, playMode)
+                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${playMode}-report", playMode)
 
-        //                     echo "Sending PlayMode test results to Bitbucket..."
-        //                     util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, playMode)
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                            echo "Sending PlayMode test results to Bitbucket..."
+                            util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, playMode)
+                        }
+                    }
+                }
+            }
+        }
         // Merges the two coverage reports from the EditMode and PlayMode (editor) reports into one.
         // Then sends a coverage report to Bitbucket.
-        // stage('Generate Code Coverage Report') {
-        //     steps {
-        //         echo "Generating code coverage report..."
-        //         dir("${PROJECT_DIR}") {
-        //             sh """\"${UNITY_EXECUTABLE}\" \
-        //             -batchmode \
-        //             -nographics \
-        //             -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
-        //             -projectPath . \
-        //             -debugCodeOptimization \
-        //             -enableCodeCoverage \
-        //             -coverageResultsPath \"${REPORT_DIR}/coverage_results\" \
-        //             -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics;useProjectSettings\" \
-        //             -quit"""
+        stage('Generate Code Coverage Report') {
+            steps {
+                echo "Generating code coverage report..."
+                dir("${PROJECT_DIR}") {
+                    sh """\"${UNITY_EXECUTABLE}\" \
+                    -batchmode \
+                    -nographics \
+                    -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
+                    -projectPath . \
+                    -debugCodeOptimization \
+                    -enableCodeCoverage \
+                    -coverageResultsPath \"${REPORT_DIR}/coverage_results\" \
+                    -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics;useProjectSettings\" \
+                    -quit"""
 
-        //             script {
-        //                 util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/coverage_results/Report", "CodeCoverage")
+                    script {
+                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/coverage_results/Report", "CodeCoverage")
 
-        //                 echo "Sending code coverage report to Bitbucket..."
-        //                 util.sendCoverageReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
-        //             }   
-        //         }
-        //     }
-        // }
+                        echo "Sending code coverage report to Bitbucket..."
+                        util.sendCoverageReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
+                    }   
+                }
+            }
+        }
         //Builds the project and saves it.
         stage('Build Project') {
             steps {
@@ -247,21 +247,21 @@ pipeline {
     }
 
     // When the pipeline finishes, sends the build status to Bitbucket.
-    // post {
-    //     success {
-    //         script {
-    //             util.postBuild("SUCCESSFUL")
-    //         }
-    //     }
-    //     failure {
-    //         script {
-    //             util.postBuild("FAILED")
-    //         }
-    //     }
-    //     aborted {
-    //         script {
-    //             util.postBuild("STOPPED")
-    //         }
-    //     }
-    // }
+    post {
+        success {
+            script {
+                util.postBuild("SUCCESSFUL")
+            }
+        }
+        failure {
+            script {
+                util.postBuild("FAILED")
+            }
+        }
+        aborted {
+            script {
+                util.postBuild("STOPPED")
+            }
+        }
+    }
 }
