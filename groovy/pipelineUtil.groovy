@@ -87,8 +87,7 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         -testPlatform ${testType} \
         -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\" \
-        ${reportSettings} \
-        ${env.MEMORY_SETTING}"
+        ${reportSettings}"
 
     if(testType == "PlayMode")
     {
