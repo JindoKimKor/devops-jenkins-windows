@@ -165,7 +165,6 @@ def buildProject(reportDir, projectDir, unityExecutable) {
         -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\" \
         -buildTarget WebGL \
-        ${env.MEMORY_SETTING} \
         -executeMethod Builder.BuildWebGL""", returnStatus: true)
 
     if (exitCode != 0) {
