@@ -43,83 +43,6 @@ pipeline {
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
-        // -memorysetup-bucket-allocator-granularity=16 \
-        // -memorysetup-bucket-allocator-bucket-count=8 \
-        // -memorysetup-bucket-allocator-block-size=33554432 \
-        // -memorysetup-bucket-allocator-block-count=8 \
-        // -memorysetup-main-allocator-block-size=16777216 \
-        // -memorysetup-thread-allocator-block-size=16777216 \
-        // -memorysetup-gfx-main-allocator-block-size=16777216 \
-        // -memorysetup-gfx-thread-allocator-block-size=16777216 \
-        // -memorysetup-cache-allocator-block-size=4194304 \
-        // -memorysetup-typetree-allocator-block-size=2097152 \
-        // -memorysetup-profiler-bucket-allocator-granularity=16 \
-        // -memorysetup-profiler-bucket-allocator-bucket-count=8 \
-        // -memorysetup-profiler-bucket-allocator-block-size=33554432 \
-        // -memorysetup-profiler-bucket-allocator-block-count=8 \
-        // -memorysetup-profiler-allocator-block-size=16777216 \
-        // -memorysetup-profiler-editor-allocator-block-size=1048576 \
-        // -memorysetup-temp-allocator-size-main=16777216 \
-        // -memorysetup-job-temp-allocator-block-size=2097152 \
-        // -memorysetup-job-temp-allocator-block-size-background=1048576 \
-        // -memorysetup-job-temp-allocator-reduction-small-platforms=262144 \
-        // -memorysetup-allocator-temp-initial-block-size-main=262144 \
-        // -memorysetup-allocator-temp-initial-block-size-worker=262144 \
-        // -memorysetup-temp-allocator-size-background-worker=32768 \
-        // -memorysetup-temp-allocator-size-job-worker=262144 \
-        // -memorysetup-temp-allocator-size-preload-manager=33554432 \
-        // -memorysetup-temp-allocator-size-nav-mesh-worker=65536 \
-        // -memorysetup-temp-allocator-size-audio-worker=65536 \
-        // -memorysetup-temp-allocator-size-cloud-worker=32768 \
-        // -memorysetup-temp-allocator-size-gi-baking-worker=262144 \
-        // -memorysetup-temp-allocator-size-gfx=262144 \
-        // Default version of memory setting
-        MEMORY_SETTING = """
-        -memorysetup-il2cpp-main-allocator-block-size=4294967296 \
-        -memorysetup-il2cpp-thread-allocator-block-size=4294967296 \
-        -memorysetup-il2cpp-cache-allocator-block-size=536870912 \
-        -memorysetup-il2cpp-temp-allocator-size-main=4294967296 \
-        -memorysetup-il2cpp-temp-allocator-size-worker=536870912
-        """.trim().replaceAll("\n", " ")
-
-        // Enhanced-Version of Memory Settings: This configuration aggressively increases memory block sizes and bucket counts to minimize CPU usage as much as possible, resulting in a significant increase in RAM consumption. It is ideal for high-performance scenarios where reducing CPU overhead is critical, and ample RAM is available.
-        // MEMORY_SETTING = """
-        // -memorysetup-bucket-allocator-granularity=128 \
-        // -memorysetup-bucket-allocator-bucket-count=64 \
-        // -memorysetup-bucket-allocator-block-size=268435456 \
-        // -memorysetup-bucket-allocator-block-count=64 \
-        // -memorysetup-main-allocator-block-size=134217728 \
-        // -memorysetup-thread-allocator-block-size=134217728 \
-        // -memorysetup-gfx-main-allocator-block-size=134217728 \
-        // -memorysetup-gfx-thread-allocator-block-size=134217728 \
-        // -memorysetup-cache-allocator-block-size=33554432 \
-        // -memorysetup-typetree-allocator-block-size=16777216 \
-        // -memorysetup-profiler-bucket-allocator-granularity=128 \
-        // -memorysetup-profiler-bucket-allocator-bucket-count=64 \
-        // -memorysetup-profiler-bucket-allocator-block-size=268435456 \
-        // -memorysetup-profiler-bucket-allocator-block-count=64 \
-        // -memorysetup-profiler-allocator-block-size=134217728 \
-        // -memorysetup-profiler-editor-allocator-block-size=8388608 \
-        // -memorysetup-temp-allocator-size-main=134217728 \
-        // -memorysetup-job-temp-allocator-block-size=16777216 \
-        // -memorysetup-job-temp-allocator-block-size-background=8388608 \
-        // -memorysetup-job-temp-allocator-reduction-small-platforms=2097152 \
-        // -memorysetup-allocator-temp-initial-block-size-main=2097152 \
-        // -memorysetup-allocator-temp-initial-block-size-worker=2097152 \
-        // -memorysetup-temp-allocator-size-background-worker=262144 \
-        // -memorysetup-temp-allocator-size-job-worker=2097152 \
-        // -memorysetup-temp-allocator-size-preload-manager=268435456 \
-        // -memorysetup-temp-allocator-size-nav-mesh-worker=524288 \
-        // -memorysetup-temp-allocator-size-audio-worker=524288 \
-        // -memorysetup-temp-allocator-size-cloud-worker=262144 \
-        // -memorysetup-temp-allocator-size-gi-baking-worker=2097152 \
-        // -memorysetup-temp-allocator-size-gfx=2097152 \
-        // -memorysetup-il2cpp-main-allocator-block-size=268435456 \
-        // -memorysetup-il2cpp-thread-allocator-block-size=268435456 \
-        // -memorysetup-il2cpp-cache-allocator-block-size=67108864 \
-        // -memorysetup-il2cpp-temp-allocator-size-main=268435456 \
-        // -memorysetup-il2cpp-temp-allocator-size-worker=67108864
-        // // """.trim().replaceAll("\n", " ")
     }
 
     stages {
@@ -206,7 +129,7 @@ pipeline {
                         sh "git checkout ${PR_BRANCH}"
                         def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
 
-                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit ${MEMORY_SETTING}"
+                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
                         
                         echo "Flags set to: ${flags}"
                         
@@ -288,7 +211,6 @@ pipeline {
         //         dir("${PROJECT_DIR}") {
         //             sh """\"${UNITY_EXECUTABLE}\" \
         //             -batchmode \
-        //             ${MEMORY_SETTING} \
         //             -nographics \
         //             -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
         //             -projectPath . \
