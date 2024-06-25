@@ -28,6 +28,7 @@ pipeline {
     }
 
     environment {
+        CI_PIPELINE = "false"
         PROJECT_DIR = "${WORKSPACE}/Deployment"
         REPORT_DIR = "${WORKSPACE}/Deployment"
         JOB_REPO = "${PR_REPO_HTML}"

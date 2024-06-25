@@ -38,6 +38,7 @@ pipeline {
     }
 
     environment {
+        CI_PIPELINE = "true"
         PROJECT_DIR = "${WORKSPACE}/Unity_Project" 
         REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
