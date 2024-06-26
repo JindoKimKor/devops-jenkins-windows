@@ -38,6 +38,7 @@ pipeline {
     }
 
     environment {
+        CI_PIPELINE = "true"
         PROJECT_DIR = "${WORKSPACE}/Unity_Project" 
         REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
@@ -128,11 +129,12 @@ pipeline {
                     script {
                         sh "git checkout ${PR_BRANCH}"
                         def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
+
                         def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
                         
                         echo "Flags set to: ${flags}"
                         
-                        // Execute Unity in batch mode
+                        // Execute Unity in batch mode with memory settings
                         def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
                         
                         // Handle exit code
