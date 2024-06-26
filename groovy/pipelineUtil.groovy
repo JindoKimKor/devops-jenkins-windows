@@ -80,14 +80,12 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         -coverageResultsPath \"${reportDir}/coverage_results\" \
         -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
 
-    def flags = "-quit \
-        -runTests \
+    def flags = "-runTests \
         -batchmode \
         -nographics \
         -testPlatform ${testType} \
         -projectPath \"${projectDir}\" \
-        -logFile \"${logFile}\" \
-        ${reportSettings}"
+        -logFile \"${logFile}\"${reportSettings}"
 
     if(testType == "PlayMode")
     {
