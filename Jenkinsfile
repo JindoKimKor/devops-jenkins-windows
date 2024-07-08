@@ -57,6 +57,7 @@ pipeline {
             steps {
                 //send 'In Progress' status to Bitbucket
                 script {
+                    sh 'env'
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
                     echo "Sending \'In Progress\' status to Bitbucket..."
                     env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
