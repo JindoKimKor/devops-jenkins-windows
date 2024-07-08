@@ -17,14 +17,14 @@ workspace = os.getenv('WORKSPACE')
 user_pass = jenkins_token.split(":")
 
 # Localhost and port configuration
-jenkins_private_ip = "127.0.0.1"
-jenkins_private_port = "80"
+local_host_ip = "127.0.0.1"
+local_host_port = "80"
 
 # Parse the existing build_url
 parsed_url = urlparse(build_url)
 
 # Reconstruct the build_url to use localhost and port 80
-local_build_url = f"http://{jenkins_private_ip}:{jenkins_private_port}{parsed_url.path}"
+local_build_url = f"http://{local_host_ip}:{local_host_port}{parsed_url.path}"
 
 
 def get_log_lines(path):
