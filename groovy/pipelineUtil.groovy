@@ -98,10 +98,7 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         ${flags}""", returnStatus: true)
 
     if ((exitCode != 0)) {
-        def logContent = readFile(logFile)
-        
-        echo "Test failed with exit code ${exitCode}. Check the log file for more details."
-        echo "Log File Content: ${logContent}"
+        println "Test failed with exit code ${exitCode}. Check the log file for more details."
 
         sh "exit ${exitCode}"
     }
