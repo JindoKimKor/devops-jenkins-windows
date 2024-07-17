@@ -97,8 +97,9 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
     def exitCode = sh (script: """\"${unityExecutable}\" \
         ${flags}""", returnStatus: true)
 
-    // We only want to fail a build with failing tests if it is a deployment build.
-    if ((deploymentBuild && exitCode == 2) || (!deploymentBuild && exitCode != 0 && exitCode != 2)) {
+    if ((exitCode != 0)) {
+        println "Test failed with exit code ${exitCode}. Check the log file for more details."
+
         sh "exit ${exitCode}"
     }
 }
