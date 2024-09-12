@@ -140,7 +140,8 @@ def parseTicketNumber(branchName) {
 def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType) {
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"sudo mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
-    && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""""
+    && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report 
+    && sudo chmod -R 755 /var/www/html/${remoteProjectFolderName}/Reports \""""
 
     sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${reportDir}/*\" \
     \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""
