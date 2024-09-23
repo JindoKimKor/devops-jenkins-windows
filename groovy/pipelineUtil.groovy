@@ -100,7 +100,9 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
     if ((exitCode != 0)) {
         println "Test failed with exit code ${exitCode}. Check the log file for more details."
 
-        sh "exit ${exitCode}"
+        if(deploymentBuild){
+            sh "exit ${exitCode}"
+        }
     }
 }
 
