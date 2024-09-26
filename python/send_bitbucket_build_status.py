@@ -26,7 +26,7 @@ description = f"{args['pr-status']}: {args['description']}" if (args['descriptio
 if args['pr-status'] == "SUCCESSFUL" and args['deployment'] == True:
     build_url = f"https://webdlx.vconestoga.com/{folder_name}"
 elif args['pr-status'] != "INPROGRESS":
-    build_url = f"http://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/logs.html"
+    build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/logs.html"
 else:
     build_url = os.getenv('BUILD_URL')
 
