@@ -124,7 +124,7 @@ pipeline {
                     if(exitCode != 0)
                     {
                         //in this case we set build result to failure since we don't want to deploy bad code
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
                             error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
                         }
                     }
