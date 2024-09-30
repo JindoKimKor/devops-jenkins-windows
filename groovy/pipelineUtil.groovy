@@ -78,7 +78,7 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         -debugCodeOptimization \
         -enableCodeCoverage \
         -coverageResultsPath \"${reportDir}/coverage_results\" \
-        -coverageOptions \"generateAdditionalMetrics;useProjectSettings\"""" : ""
+        -coverageOptions \"generateAdditionalMetrics;generateHtmlReport;useProjectSettings\"""" : ""
 
     def flags = "-runTests \
         -batchmode \

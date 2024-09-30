@@ -1,12 +1,14 @@
 def editMode = "EditMode"
 def playMode = "PlayMode"
+def pass = "Pass"
+def fail = "Fail"
 def util
 
 pipeline {
     agent any
 
     tools {
-        dotnetsdk 'dotnet-core-2.1.202'
+        dotnetsdk 'dotnet-8'
     }
 
     parameters {
@@ -132,7 +134,7 @@ pipeline {
                         sh "git checkout ${PR_BRANCH}"
                         def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
 
-                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -logFile \"${logFile}\" -quit"
+                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
                         
                         echo "Flags set to: ${flags}"
                         
@@ -143,6 +145,36 @@ pipeline {
                         if (exitCode != 0) {
                             sh "exit ${exitCode}"
                         }
+                    }
+                }
+            }
+        }
+        stage('Linting')
+        {
+            steps{
+                //Linting
+                echo "running lint script"
+                script {
+                    echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
+                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
+                    echo "After bash call, exit code: ${exitCode}"
+                    //handle exit code here
+                    if(exitCode != 0)
+                    {
+                        echo "Error linting calling report"
+                        echo "Parameters for Python Fail: \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${fail}"
+                        if(exitCode == 2) //report was generated call python script
+                        {
+                            sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail}"
+                        }
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
+                            error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
+                        }
+                    }
+                    else
+                    {
+                        echo "Parameters for Python Pass: \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${pass}"
+                        sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${pass}"
                     }
                 }
             }
@@ -159,18 +191,6 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, true, false)
-
-                        // For some reason, Jenkins doesn't always want to wait until the test log is finished being written to.
-                        // If it doesn't wait, then the convertTestResultsToHtml function will always fail,
-                        // because the file is currently open elsewhere.
-                        waitUntil {
-                            def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/EditMode-tests.log")
-
-                            fileAvailable == 0
-                        }
-
-                        util.convertTestResultsToHtml(REPORT_DIR, editMode)
-                        util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${editMode}-report", editMode)
 
                         echo "Sending EditMode test results to Bitbucket..."
                         util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, editMode)
@@ -190,14 +210,6 @@ pipeline {
                     retry (5) {
                         script {
                             util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, true, false)
-
-                            waitUntil {
-                                def fileAvailable = util.checkIfFileIsLocked("${REPORT_DIR}/test_results/PlayMode-tests.log")
-                                fileAvailable == 0
-                            }   
-
-                            util.convertTestResultsToHtml(REPORT_DIR, playMode)
-                            util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/test_results/${playMode}-report", playMode)
 
                             echo "Sending PlayMode test results to Bitbucket..."
                             util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, playMode)

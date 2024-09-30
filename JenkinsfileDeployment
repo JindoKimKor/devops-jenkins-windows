@@ -87,6 +87,48 @@ pipeline {
                     echo "Identifying Unity version..."
                     env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, PROJECT_DIR)
                 }
+
+                // Initial running the project on Unity Editor    
+                echo "Running Unity in batch mode to setup initial files..."
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        sh "git checkout ${PR_BRANCH}"
+                        def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
+
+                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
+                        
+                        echo "Flags set to: ${flags}"
+                        
+                        // Execute Unity in batch mode with memory settings
+                        def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
+                        
+                        // Handle exit code
+                        if (exitCode != 0) {
+                            sh "exit ${exitCode}"
+                        }
+                    }
+                }
+            }
+        }
+        //linting stage to check formatting
+        stage('Linting')
+        {
+            steps{
+                //Linting
+                echo "running lint script"
+                script {
+                    echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
+                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
+                    echo "After bash call, exit code: ${exitCode}"
+                    //handle exit code here no reports to be sent, since this for deployment and not PRs
+                    if(exitCode != 0)
+                    {
+                        //in this case we set build result to failure since we don't want to deploy bad code
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                            error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
+                        }
+                    }
+                }
             }
         }
         // Runs the project's EditMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
