@@ -155,6 +155,14 @@ pipeline {
                 //Linting
                 echo "running lint script"
                 script {
+                    def editorconfig = "${WORKSPACE}/Bash/.editorconfig"
+                    if (!fileExists("${editorconfig}")){
+                        sh "cp \'${WORKSPACE}/Bash/.editorconfig\' \'${PROJECT_DIR}\'"
+                        echo "Config not found copied file"
+                    }
+                    else{
+                        echo "Config found using projects"
+                    }
                     echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
                     def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
                     echo "After bash call, exit code: ${exitCode}"
@@ -162,10 +170,10 @@ pipeline {
                     if(exitCode != 0)
                     {
                         echo "Error linting calling report"
-                        echo "Parameters for Python Fail: \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${fail}"
+                        echo "Parameters for Python Fail: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
                         if(exitCode == 2) //report was generated call python script
                         {
-                            sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail}"
+                            sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
                             error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
@@ -173,8 +181,8 @@ pipeline {
                     }
                     else
                     {
-                        echo "Parameters for Python Pass: \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${pass}"
-                        sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' ${REPORT_DIR}/format-report.json ${COMMIT_HASH} ${pass}"
+                        echo "Parameters for Python Pass: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
+                        sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
                     }
                 }
             }
