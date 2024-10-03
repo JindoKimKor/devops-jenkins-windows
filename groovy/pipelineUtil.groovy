@@ -82,13 +82,16 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
 
     def flags = "-runTests \
         -batchmode \
-        -nographics \
         -testPlatform ${testType} \
         -projectPath \"${projectDir}\" \
         -logFile \"${logFile}\"${reportSettings}"
 
-    if(testType == "PlayMode")
-    {
+    // Allows only PlayMode to run with graphics enabled
+    if(testType == "EditMode"){
+        flags += "-nographics"
+    }
+
+    if(testType == "PlayMode"){
         flags += " -testCategory BuildServer"
     }
 
