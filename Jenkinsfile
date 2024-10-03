@@ -155,14 +155,7 @@ pipeline {
                 //Linting
                 echo "running lint script"
                 script {
-                    def editorconfig = "${WORKSPACE}/Bash/.editorconfig"
-                    if (!fileExists("${editorconfig}")){
-                        sh "cp \'${WORKSPACE}/Bash/.editorconfig\' \'${PROJECT_DIR}\'"
-                        echo "Config not found copied file"
-                    }
-                    else{
-                        echo "Config found using projects"
-                    }
+                    sh "cp -f \'${WORKSPACE}/Bash/.editorconfig\' \'${PROJECT_DIR}\' 2>/dev/null"
                     echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
                     def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
                     echo "After bash call, exit code: ${exitCode}"
