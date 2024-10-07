@@ -188,4 +188,6 @@ for idx, annotation_batch in enumerate(chunk_annotations(annotations_to_send, ba
         print(f"Error with batch {idx+1}: {e.request.body}")
         if e.response:
             print(f"Response Error: {json.dumps(e.response.json())}")
+        else:
+            print(f"General Exception: {e}")
         exit(1)  # Exit on error
