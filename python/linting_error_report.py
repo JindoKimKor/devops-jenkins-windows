@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 import requests
+import uuid
 
 # Function summary: This takes a file path to a json file, normalizes it and returns the loaded JSON data
 def get_json_normalized(json_file):
@@ -128,6 +129,7 @@ def chunk_annotations(annotations, batch_size):
 data = get_json_normalized(args["lint-report-path"])
 search_path = os.path.normpath(args["Unity-Project"])
 annotations = []
+external_ids = set() # Holds ids to check against, ensures unique ID's
 
 # Loop to build json array of Annotations
 for document in data:
@@ -148,11 +150,18 @@ for document in data:
     for change in file_changes:
         line_number = change['LineNumber']
         summary = change['FormatDescription']
+        id = f"{relative_path} + {line_number}"
+
+        # If ID found concat a UUID on
+        if id in external_ids:
+            id += f"-{uuid.uuid4()}"
+        else:
+            external_ids.add(id)
         
         # Create the annotation object
         # "type": "<string>", not sure if needed is on REST API doc
         annotation = {
-            "external_id": f"{relative_path} + {line_number}",
+            "external_id": id,
             "annotation_type": "CODE_SMELL",
             "path": relative_path,
             "line": line_number,
@@ -178,6 +187,7 @@ annotations_to_send = annotations[:max_annotations]
 for idx, annotation_batch in enumerate(chunk_annotations(annotations_to_send, batch_size)):
     # Create the JSON body for this batch
     AnnotationReport = json.dumps(annotation_batch)
+
     
     # Send the request
     try:
