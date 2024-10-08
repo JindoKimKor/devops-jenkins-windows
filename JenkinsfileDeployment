@@ -1,13 +1,16 @@
 def editMode = "EditMode"
 def playMode = "PlayMode"
 def util
+def main = "main"
 
 pipeline {
     agent any
 
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
+        string(name: 'PR_DESTINATION_BRANCH', defaultValue: '', description: '')
         string(name: 'PR_REPO_HTML', defaultValue: '', description: '')
+        string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
     }
@@ -16,7 +19,9 @@ pipeline {
         GenericTrigger(
             genericVariables: [
                 [key: 'PR_BRANCH', value: '$.pullrequest.source.branch.name'],
+                [key: 'PR_DESTINATION_BRANCH', value: '$.pullrequest.destination.branch.name'],
                 [key: 'PR_REPO_HTML', value: '$.repository.links.self.href'],
+                [key: 'PR_COMMIT', value: '$.pullrequest.source.commit.hash'],
                 [key: 'PR_PROJECT', value: '$.repository.full_name'],
                 [key: 'PR_STATE', value: '$.pullrequest.state']
             ],
@@ -33,6 +38,7 @@ pipeline {
         REPORT_DIR = "${WORKSPACE}/Deployment"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
+        DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
     }
 
     stages {
@@ -41,12 +47,20 @@ pipeline {
         stage ('Delete Merged Branch') {
             steps {
                 script {
+                    // Aborts the pipeline if it's not merging into the main.
+                    if(!env.DESTINATION_BRANCH.equals(main)){
+                        env.FAILURE_REASON = "Not merging to the main branch. Exiting the pipeline..."
+                        currentBuild.result = 'ABORTED'
+                        error(env.FAILURE_REASON)
+                    }
+
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
-                    
-                    sh "rm -r -f \"${branch_path}\""
-                    sh "rm -r -f \"${branch_path}@tmp\""
+                    if(!branch_path.isEmpty()){
+                        sh "rm -r -f \"${branch_path}\""
+                        sh "rm -r -f \"${branch_path}@tmp\""
+                    }
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                     def ticketNumber = util.parseTicketNumber(PR_BRANCH)
@@ -62,22 +76,26 @@ pipeline {
             }
             steps {
                 script {
-                    if (!fileExists(PROJECT_DIR)) {
+                    // Getting the full commit hash from git in order to send the build status to Bitbucket.
+                    script {
+                        env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                        //env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
+                    }
+
+                    if (!fileExists("${PROJECT_DIR}")) {
                         echo "First time running pipeline. Cloning main branch..."
                         sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
                     }
                 }
                 
                 dir ("${PROJECT_DIR}") {
+                    // Ensure it stays in the main branch
+                    echo "Checkout to the main branch..."
+                    sh "git checkout ${main}"
                     echo "Cleaning project..."
                     sh "git reset --hard HEAD"
                     echo "Pulling latest version of default branch..."
                     sh "git pull"
-
-                    // Getting the full commit hash from git in order to send the build status to Bitbucket.
-                    script {
-                        env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
-                    }
                 }
 
                 script {
@@ -92,9 +110,7 @@ pipeline {
                 echo "Running Unity in batch mode to setup initial files..."
                 dir ("${PROJECT_DIR}") {
                     script {
-                        sh "git checkout ${PR_BRANCH}"
                         def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
-
                         def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
                         
                         echo "Flags set to: ${flags}"
@@ -105,7 +121,7 @@ pipeline {
                         // Handle exit code
                         if (exitCode != 0) {
                             sh "exit ${exitCode}"
-                        }
+                        }    
                     }
                 }
             }
