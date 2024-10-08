@@ -15,6 +15,16 @@ def getFullCommitHash(workspace, shortCommit) {
     return sh (script: "python \'${workspace}/python/get_bitbucket_commit_hash.py\' ${shortCommit}", returnStdout: true)
 }
 
+// Retrieves the latest commit hash of the current local repository.
+def getCurrentCommitHash(){
+    return sh (script: "git rev-parse HEAD", returnStdout: true).trim() 
+}
+
+// Checks if the currentHash from the local repository and the commitHash from the remote repository are equal.
+def isEqualCommitHash(currentHash, commitHash){
+    return currentHash.equals(commitHash)
+}
+
 // Sends a build status to Bitbucket Cloud API.
 def sendBuildStatus(workspace, state, commitHash, deployment = "") {
     sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state} ${deployment}"

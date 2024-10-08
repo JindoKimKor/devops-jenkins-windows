@@ -62,8 +62,17 @@ pipeline {
                     // print jenkins env configurations
                     sh 'env'
                     util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
-                    echo "Sending \'In Progress\' status to Bitbucket..."
                     env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                    dir("${PROJECT_DIR}"){
+                        env.CURRENT_HASH = util.getCurrentCommitHash()
+                        // confirm if PR commits are updated and if no commits are updated, abort the pipeline
+                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH)){
+                            env.FAILURE_REASON = "No commits updated. Exiting the pipeline..."
+                            currentBuild.result = 'ABORTED'
+                            error(env.FAILURE_REASON)
+                        }
+                    }
+                    echo "Sending \'In Progress\' status to Bitbucket..."
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
                     env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
@@ -85,7 +94,8 @@ pipeline {
                             sh "rm -f '${PROJECT_DIR}/.git/index.lock'"
 
                             echo "Fetching latest changes..."
-                            dir ("${PROJECT_DIR}") {                            
+                            dir ("${PROJECT_DIR}") {         
+
                             sh "git fetch origin"
                             sh "git reset --hard origin/${PR_BRANCH}"
                             }
@@ -149,8 +159,7 @@ pipeline {
                 }
             }
         }
-        stage('Linting')
-        {
+        stage('Linting'){
             steps{
                 //Linting
                 echo "running lint script"
