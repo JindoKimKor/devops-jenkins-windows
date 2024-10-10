@@ -200,4 +200,4 @@ for idx, annotation_batch in enumerate(chunk_annotations(annotations_to_send, ba
             print(f"Response Error: {json.dumps(e.response.json())}")
         else:
             print(f"General Exception: {e}")
-        exit(1)  # Exit on error
+        exit(0)  # Exit on error

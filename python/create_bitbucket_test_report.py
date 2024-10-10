@@ -69,3 +69,64 @@ except requests.exceptions.RequestException as e:
     print(f"Initial Request: {e.request.body}")
     print(f"Response Error: {json.dumps(e.response.json())}")
     exit(1)
+
+# Early exit for passed tests
+if(result == "PASSED"): exit(0)
+
+# Function summary: This function takes the total annotations, and a batch size then slices the list
+# According to the batch size yield returning the chunk and repeating
+def chunk_annotations(annotations, batch_size):
+    for i in range(0, len(annotations), batch_size):
+        yield annotations[i:i + batch_size] # List slices ie 0:100, 100:200, yield can return multiple times
+
+
+# Variables
+testXML = args["test-results-path"] + f'/{args["test-mode"]}-results.xml'
+tree = ET.parse(testXML)
+root = tree.getroot()
+annotations = []
+
+
+# Loop to build json array 
+for test in root.iter('test-case'):
+    if(test.get('result') == "Failed"):
+        id = test.get('methodname')
+        summary = f"The test method {id} has failed."
+        annotation = {
+                "external_id": id,
+                "annotation_type": "VULNERABILITY",
+                "summary": summary,
+                "result": "FAILED",
+                "severity": "HIGH"
+            }
+        
+        annotations.append(annotation)
+
+# Limits according to Bitbucket REST API docs
+max_annotations = 1000  # The total max number of annotations allowed per report
+batch_size = 100        # Limit of annotations per request
+
+# Request stuff below here
+AnnotationUrl = url + f'/annotations'
+# Can re use headers
+# Only send up to 1000 annotations, Slices excess off limit of REST API
+annotations_to_send = annotations[:max_annotations]
+
+# Loop through the chunks and send requests
+for idx, annotation_batch in enumerate(chunk_annotations(annotations_to_send, batch_size)):
+    # Create the JSON body for this batch
+    AnnotationReport = json.dumps(annotation_batch)
+
+    
+    # Send the request
+    try:
+        response = requests.post(AnnotationUrl, data=AnnotationReport, headers=headers)
+        response.raise_for_status()  # This will raise an exception for HTTP errors
+        print(f"Batch {idx+1} sent successfully") # Remove later for debugging
+    except requests.exceptions.RequestException as e:
+        print(f"Error with batch {idx+1}: {e.request.body}")
+        if e.response:
+            print(f"Response Error: {json.dumps(e.response.json())}")
+        else:
+            print(f"General Exception: {e}")
+        exit(0)  # Exit on error
