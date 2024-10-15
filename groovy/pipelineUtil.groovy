@@ -205,4 +205,10 @@ def postBuild(status) {
 
     sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH)
 }
+
+// A method for post-build PR actions. 
+// This one is specific to our JS pipelines as there are no Unity Logs
+def postBuildJS(status) {
+    sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH)
+}
 return this

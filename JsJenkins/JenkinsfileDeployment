@@ -1,5 +1,3 @@
-def editMode = "EditMode"
-def playMode = "PlayMode"
 def util
 def main = "main"
 
@@ -101,28 +99,6 @@ pipeline {
                 script {
                     echo "Sending \'In Progress\' status to Bitbucket..."
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
-
-                    echo "Identifying Unity version..."
-                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, PROJECT_DIR)
-                }
-
-                // Initial running the project on Unity Editor    
-                echo "Running Unity in batch mode to setup initial files..."
-                dir ("${PROJECT_DIR}") {
-                    script {
-                        def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
-                        def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
-                        
-                        echo "Flags set to: ${flags}"
-                        
-                        // Execute Unity in batch mode with memory settings
-                        def exitCode = sh(script: """\"${env.UNITY_EXECUTABLE}\" ${flags}""", returnStatus: true)
-                        
-                        // Handle exit code
-                        if (exitCode != 0) {
-                            sh "exit ${exitCode}"
-                        }    
-                    }
                 }
             }
         }
@@ -130,74 +106,33 @@ pipeline {
         stage('Linting')
         {
             steps{
-                //Linting
-                echo "running lint script"
                 script {
-                    echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
-                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
-                    echo "After bash call, exit code: ${exitCode}"
-                    //handle exit code here no reports to be sent, since this for deployment and not PRs
-                    if(exitCode != 0)
-                    {
-                        //in this case we set build result to failure since we don't want to deploy bad code
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                            error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
-                        }
-                    }
+                    echo "Linting step"
                 }
             }
         }
         // Runs the project's EditMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
         // We do not want failing tests on main. 
-        stage ('EditMode Tests') {
+        stage ('Tests') {
             steps {
-                echo "Running EditMode tests..."
-                dir ("${PROJECT_DIR}") {
-                    script {
-                        util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, false, true)
-                    }
+                script {
+                    echo "Testing step"
                 }
             }
         }
-        // Runs the project's PlayMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
-        // We do not want failing tests on main. This stage is retried 5 times in case of Unity crashes (which are common).
-        stage ('PlayMode Tests In Editor'){
-            steps {
-                echo "Running PlayMode tests..."
-                dir ("${PROJECT_DIR}") {
-                    retry (5) {
-                        script {
-                            util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, false, true)
-                        }
-                    }
-                }
-            }
-        }
-        // Builds the project for WebGL.
+        // Builds the project if needed (containerization?)
         stage ('Build Project') {
             steps {
-                echo "Building Unity project for WebGL..."
-                sh "mkdir -p \"${PROJECT_DIR}/Assets/Editor/\"" //The following line assumed this folder exists in every project, adding check to ensure it does.
-                sh "mv Builder.cs \"${PROJECT_DIR}/Assets/Editor/\""
-
-                retry (5) {
-                    script {
-                        util.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
-                    }
+                script {
+                    echo "Build step"
                 }
             }
         }
         // Deploys the build on our remote web server. 
         stage ('Deploy Build') {
             steps {
-                echo "Deploying build to LTI web server..."
-
                 script {
-                    sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
-                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
-                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
-                    //call script to copy that into the deployed server
-                    sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com 'bash ~/ShellScripts/CopyBuildToServer.sh /var/www/html/${FOLDER_NAME} ~/DLX-Server/devopsdlxserver/public/'"
+                    echo "Deploy Step"
                 }
             }
         }
