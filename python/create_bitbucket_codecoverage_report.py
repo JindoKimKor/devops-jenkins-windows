@@ -45,7 +45,7 @@ report = json.dumps( {
     "details": "*Only includes line coverage.",
     "report_type": "COVERAGE",
     "reporter": "Jenkins",
-    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{ticket_number}/CodeCoverage-report/index.html",
+    "link": f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket_number}/CodeCoverage-report/index.html",
     "data": [
         {
             "type": "PERCENTAGE",

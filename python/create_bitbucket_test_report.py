@@ -52,7 +52,7 @@ report = json.dumps( {
     "report_type": "TEST",
     "reporter": "Jenkins",
     "result": f"{result}",
-    "link": f"http://dlx-webhost.canadacentral.cloudapp.azure.com/{folder_name}/Reports/{ticket_number}/{args['test-mode']}-report/TestReport.html",
+    "link": f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket_number}/{args['test-mode']}-report/TestReport.html",
     "data": [
         {
             "type": "BOOLEAN",
