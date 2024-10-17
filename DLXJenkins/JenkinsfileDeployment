@@ -2,6 +2,8 @@ def editMode = "EditMode"
 def playMode = "PlayMode"
 def util
 def main = "main"
+def dlxList = ["Public Health Inspection", "Paramedic Ambulance", "Trades Electrical"]
+
 
 pipeline {
     agent any
@@ -10,6 +12,7 @@ pipeline {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
         string(name: 'PR_DESTINATION_BRANCH', defaultValue: '', description: '')
         string(name: 'PR_REPO_HTML', defaultValue: '', description: '')
+        string(name: 'PR_REPO_NAME', defaultValue: '', description: '')
         string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
@@ -21,6 +24,7 @@ pipeline {
                 [key: 'PR_BRANCH', value: '$.pullrequest.source.branch.name'],
                 [key: 'PR_DESTINATION_BRANCH', value: '$.pullrequest.destination.branch.name'],
                 [key: 'PR_REPO_HTML', value: '$.repository.links.self.href'],
+                [key: 'PR_REPO_NAME', value: '$.repository.name'],
                 [key: 'PR_COMMIT', value: '$.pullrequest.source.commit.hash'],
                 [key: 'PR_PROJECT', value: '$.repository.full_name'],
                 [key: 'PR_STATE', value: '$.pullrequest.state']
@@ -198,6 +202,18 @@ pipeline {
                     sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
                     //call script to copy that into the deployed server
                     sh "ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com 'bash ~/ShellScripts/CopyBuildToServer.sh /var/www/html/${FOLDER_NAME} ~/DLX-Server/devopsdlxserver/public/'"
+                }
+                
+                if (dlxList.contains(PR_REPO_NAME)) {
+                    echo "Deploying build to eConestoga dlx web server..."
+
+                    script {
+                    // Create the directory and update the file permission
+                    sh "ssh vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
+                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
+                    // Secured copy all WebGL components to the econestoga dlx server
+                    sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
+                    }
                 }
             }
         }
