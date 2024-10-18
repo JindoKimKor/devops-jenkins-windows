@@ -2,7 +2,7 @@ def editMode = "EditMode"
 def playMode = "PlayMode"
 def util
 def main = "main"
-def dlxList = ["Public Health Inspection", "Paramedic Ambulance", "Trades Electrical", "pipeline-test"]
+def dlxList = ["Public Health Inspection", "Paramedic Ambulance", "Trades Electrical"]
 
 
 pipeline {
