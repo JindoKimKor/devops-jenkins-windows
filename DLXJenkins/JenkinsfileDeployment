@@ -213,6 +213,8 @@ pipeline {
                     && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
                     // Secured copy all WebGL components to the econestoga dlx server
                     sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
+                    //call script to update the WebGL "index.html"
+                    sh "ssh vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com 'bash ~/ShellScripts/UpdateBuildURL.sh /var/www/html/${FOLDER_NAME}'"
                     }
                 }
             }
