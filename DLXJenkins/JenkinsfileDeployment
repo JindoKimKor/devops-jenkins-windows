@@ -209,8 +209,8 @@ pipeline {
                         echo "Deploying build to eConestoga dlx web server..."
 
                         // Create the directory and update the file permission
-                        sh "ssh -i C:/Users/ci-catherine/.ssh/vconkey1.pem vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
-                        && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
+                        sh "ssh vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com \"sudo mkdir -p /var/www/html/${FOLDER_NAME} \
+                    && sudo chown vconadmin:vconadmin /var/www/html/${FOLDER_NAME}\""
                         // Secured copy all WebGL components to the econestoga dlx server
                         sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${PROJECT_DIR}/Builds/*\" \"vconadmin@dlx-econestoga.canadacentral.cloudapp.azure.com:/var/www/html/${FOLDER_NAME}\""
                         //call script to update the WebGL "index.html"
