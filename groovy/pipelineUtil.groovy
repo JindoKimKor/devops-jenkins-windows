@@ -5,7 +5,7 @@ def installNPMInSubDirs(projectFolder){
     echo "Project directory: ${projectFolder}"
 
     // List the immediate subdirectories and check for package.json files
-    def subDirs = bat(script: "for /d %d in (\"${projectFolder}\\*\") do @if exist \"%d\\package.json\" echo %d", returnStdout: true).trim()
+    def subDirs = bat(script: "for /d %d in (\"${projectFolder}\\*\") do @if exist \"%d\\package.json\" echo \"%d\"", returnStdout: true).trim()
 
     if (subDirs) {
         // Split the output into an array of directory paths
