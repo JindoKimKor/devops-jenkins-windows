@@ -5,6 +5,8 @@ def util
 pipeline {
     agent any
 
+    tools {nodejs "Node"}
+
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
         string(name: 'PR_DESTINATION_BRANCH', defaultValue: '', description: '')
