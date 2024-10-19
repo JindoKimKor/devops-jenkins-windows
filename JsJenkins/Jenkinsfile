@@ -142,15 +142,15 @@ pipeline {
                     bat 'npm config ls'
 
                     echo "Install dependencies for client"
-                    bat "echo Project directory: \"${PROJECT_DIR}\\client\""
+                    bat "dir \"${PROJECT_DIR}\\client\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\client\""
 
                     echo "Install dependencies for client-portual"
-                    bat "echo Project directory: \"${PROJECT_DIR}\\client-portual\""
+                    bat "dir \"${PROJECT_DIR}\\client-portual\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\client-portual\""
 
                     echo "Install dependencies for server"
-                    bat "echo Project directory: \"${PROJECT_DIR}\\server\""
+                    bat "dir \"${PROJECT_DIR}\\server\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\server\""
                 }
             }
