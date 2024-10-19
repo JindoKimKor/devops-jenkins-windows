@@ -143,15 +143,17 @@ pipeline {
 
                     echo "Install dependencies for client"
                     bat "dir \"${PROJECT_DIR}\\client\""
-                    bat "npm install --prefix \"${PROJECT_DIR}\\client\""
+                    bat "cd \"${PROJECT_DIR}\\client\" && npm install"
 
                     echo "Install dependencies for client-portual"
                     bat "dir \"${PROJECT_DIR}\\client-portual\""
-                    bat "npm install --prefix \"${PROJECT_DIR}\\client-portual\""
+                    bat "cd \"${PROJECT_DIR}\\client-portual\" && npm install"
 
                     echo "Install dependencies for server"
                     bat "dir \"${PROJECT_DIR}\\server\""
-                    bat "npm install --prefix \"${PROJECT_DIR}\\server\""
+                    bat "cd \"${PROJECT_DIR}\\server\" && npm install"
+
+                    bat "cd \"${PROJECT_DIR}\""  // Change back to PROJECT_DIR
                 }
             }
         }
