@@ -141,7 +141,7 @@ pipeline {
                     bat 'npm config ls'
 
                     echo "Install dependencies"
-                    bat "npm install --prefix \"${PROJECT_DIR}\\\""
+                    bat "npm install --prefix ${PROJECT_DIR}\\"
                     
                 }
             }
