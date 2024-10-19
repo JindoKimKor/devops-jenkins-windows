@@ -127,6 +127,14 @@ pipeline {
                 }   
             }
         }
+        stage('Install Dependencies'){
+            steps {
+                script {
+                    echo "Dependencies step"
+                    sh "npm install --prefix '${PROJECT_DIR}'"
+                }
+            }
+        }
         stage('Linting'){
             steps {
                 script {
