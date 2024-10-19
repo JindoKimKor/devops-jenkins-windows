@@ -16,7 +16,7 @@ def installNPMInSubDirs(projectFolder){
             echo "Installing dependencies in directory: ${dir}"
 
             // Print the command for debugging
-            def command = "cd \"${dir}\" && npm install"
+            def command = "cd /d \"${dir}\" && npm install"
             echo "Running command: ${command}"
 
             // Run npm install in the directory containing the package.json
@@ -27,7 +27,7 @@ def installNPMInSubDirs(projectFolder){
     }
 
     // Change back to PROJECT_DIR
-    bat "cd \"${projectFolder}\""
+    bat "cd /d \"${projectFolder}\""
 }
 
 // Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
