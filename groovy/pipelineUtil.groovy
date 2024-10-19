@@ -5,7 +5,7 @@ def installNPMInSubDirs(projectFolder){
     echo "Project directory: ${projectFolder}"
 
     // Command to list immediate subdirectories with package.json
-    def command = "cmd /c for /d %%d in (\"${projectFolder}\\*\") do @if exist \"%%d\\package.json\" echo \"%%d\""
+    def command = "for /d %%d in (\"${projectFolder}\\*\") do @if exist \"%%d\\package.json\" echo \"%%d\""
     echo "Executing command: ${command}"
 
     // List the immediate subdirectories and check for package.json files
@@ -19,7 +19,7 @@ def installNPMInSubDirs(projectFolder){
         for (def dir : packageJsonDirs) {
             echo "Installing dependencies in directory: ${dir}"
 
-            // Print the command for debugging
+            // Prepare the command for npm install
             def npmCommand = "cd /d \"${dir}\" && npm install"
             echo "Running command: ${npmCommand}"
 
@@ -31,7 +31,7 @@ def installNPMInSubDirs(projectFolder){
     }
 
     // Change back to PROJECT_DIR
-    bat "cd /d \"${projectFolder}\""
+    bat "cd \"${projectFolder}\""
 }
 
 // Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
