@@ -20,7 +20,7 @@ def installNPMInSubDirs(projectFolder){
             echo "Installing dependencies in directory: ${dir}"
 
             // Prepare the command for npm install
-            def npmCommand = "cd /d \"${dir}\" && npm install"
+            def npmCommand = "cd \"${dir}\" && npm install"
             echo "Running command: ${npmCommand}"
 
             // Run npm install in the directory containing the package.json
