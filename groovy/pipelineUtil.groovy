@@ -1,3 +1,29 @@
+//This function will check all the initial subdirectories 1 level under the project folder and 
+//if it finds a package.json file, it will then CD and install in the directory, before exiting it
+//will change the directory back to the one it was passed
+def installNPMInSubDirs(projectFolder){
+    // List the immediate subdirectories and check for package.json files
+    def subDirs = bat(script: "for /d %d in (\"${projectFolder}\\*\") do @if exist \"%d\\package.json\" echo %d", returnStdout: true).trim()
+
+    if (subDirs) {
+        // Split the output into an array of directory paths
+        def packageJsonDirs = subDirs.split("\\r?\\n")
+
+        // Loop through each directory path and run npm install
+        for (def dir : packageJsonDirs) {
+            echo "Installing dependencies in directory: ${dir}"
+
+            // Run npm install in the directory containing the package.json
+            bat "cd \"${dir}\" && npm install"
+        }
+    } 
+    else {
+        echo "No package.json files found in the immediate subdirectories of ${projectFolder}."
+    }
+
+    bat "cd \"${projectFolder}\""  // Change back to PROJECT_DIR
+}
+
 // Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
 // This is in its own method to avoid pipeline failure if the branch needs updating.
 def isBranchUpToDate(destinationBranch) {

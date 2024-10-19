@@ -141,16 +141,8 @@ pipeline {
                     bat 'npm -v'
                     bat 'npm config ls'
 
-                    echo "Install dependencies for client"
-                    bat "cd \"${PROJECT_DIR}\\client\" && npm install"
-
-                    echo "Install dependencies for client-portual"
-                    bat "cd \"${PROJECT_DIR}\\client-portual\" && npm install"
-
-                    echo "Install dependencies for server"
-                    bat "cd \"${PROJECT_DIR}\\server\" && npm install"
-
-                    bat "cd \"${PROJECT_DIR}\""  // Change back to PROJECT_DIR
+                    echo 'Install dependencies in subdirectories'
+                    util.installNPMInSubDirs(PROJECT_DIR)
                 }
             }
         }
