@@ -136,12 +136,12 @@ pipeline {
                     echo "Dependencies step"
                     echo "Check NPM"
 
-                    sh 'node -v'
-                    sh 'npm -v'
-                    sh 'npm config ls'
+                    bat 'node -v'
+                    bat 'npm -v'
+                    bat 'npm config ls'
 
                     echo "Install dependencies"
-                    sh "npm install --prefix '${PROJECT_DIR}'"
+                    bat "npm install --prefix '${PROJECT_DIR}'"
                     
                 }
             }
