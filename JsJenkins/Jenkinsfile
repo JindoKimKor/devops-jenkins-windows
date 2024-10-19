@@ -13,6 +13,7 @@ pipeline {
         string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
+        string(name: 'TEST_RUN', defaultValue: 'Y', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.')
     }
 
     triggers {
@@ -60,7 +61,7 @@ pipeline {
                     dir("${PROJECT_DIR}"){
                         env.CURRENT_HASH = util.getCurrentCommitHash()
                         // confirm if PR commits are updated and if no commits are updated, abort the pipeline
-                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH)){
+                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH && !TEST_RUN.equals("Y"))){
                             env.FAILURE_REASON = "No commits updated. Exiting the pipeline..."
                             currentBuild.result = 'ABORTED'
                             error(env.FAILURE_REASON)
