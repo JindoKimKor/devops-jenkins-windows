@@ -135,14 +135,14 @@ pipeline {
                 script {                    
                     echo "Dependencies step"
                     echo "Check NPM"
-                    withNodeJS('NodeJS_14') {
+                    withNodeJS('Node') {
                         sh 'node -v'
                         sh 'npm -v'
                         sh 'npm config ls'
                     }
-                    
+
                     echo "Install dependencies"
-                    withNodeJS('NodeJS_14') {
+                    withNodeJS('Node') {
                         sh "npm install --prefix '${PROJECT_DIR}'"
                     }
                     
