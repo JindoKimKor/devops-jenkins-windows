@@ -38,7 +38,7 @@ pipeline {
 
     environment {
         CI_PIPELINE = "true"
-        PROJECT_DIR = "${WORKSPACE}/JS_Project" 
+        PROJECT_DIR = "${WORKSPACE}\\JS_Project" 
         REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
@@ -141,7 +141,7 @@ pipeline {
                     bat 'npm config ls'
 
                     echo "Install dependencies"
-                    bat "npm install --prefix \"${WORKSPACE}\\JS_Project\""
+                    bat "npm install --prefix \"${PROJECT_DIR}\""
                     
                 }
             }
