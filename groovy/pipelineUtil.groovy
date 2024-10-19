@@ -4,8 +4,12 @@
 def installNPMInSubDirs(projectFolder){
     echo "Project directory: ${projectFolder}"
 
+    // Command to list immediate subdirectories with package.json
+    def command = "for /d %d in (\"${projectFolder}\\*\") do @if exist \"%d\\package.json\" echo \"%d\""
+    echo "Executing command: ${command}"
+
     // List the immediate subdirectories and check for package.json files
-    def subDirs = bat(script: "for /d %d in (\"${projectFolder}\\*\") do @if exist \"%d\\package.json\" echo \"%d\"", returnStdout: true).trim()
+    def subDirs = bat(script: command, returnStdout: true).trim()
 
     if (subDirs) {
         // Split the output into an array of directory paths
@@ -16,11 +20,11 @@ def installNPMInSubDirs(projectFolder){
             echo "Installing dependencies in directory: ${dir}"
 
             // Print the command for debugging
-            def command = "cd /d \"${dir}\" && npm install"
-            echo "Running command: ${command}"
+            def npmCommand = "cd /d \"${dir}\" && npm install"
+            echo "Running command: ${npmCommand}"
 
             // Run npm install in the directory containing the package.json
-            bat command
+            bat npmCommand
         }
     } else {
         echo "No package.json files found in the immediate subdirectories of ${projectFolder}."
