@@ -132,14 +132,20 @@ pipeline {
         }
         stage('Install Dependencies'){
             steps {
-                script {
-                    script{
-                        echo "Dependencies step"
-                        echo "Check NPM"
-                        sh script: 'npm config ls'
-                        echo "Install dependencies"
-                        sh script: "npm install --prefix '${PROJECT_DIR}'"
+                script {                    
+                    echo "Dependencies step"
+                    echo "Check NPM"
+                    withNodeJS('NodeJS_14') {
+                        sh 'node -v'
+                        sh 'npm -v'
+                        sh 'npm config ls'
                     }
+                    
+                    echo "Install dependencies"
+                    withNodeJS('NodeJS_14') {
+                        sh "npm install --prefix '${PROJECT_DIR}'"
+                    }
+                    
                 }
             }
         }
