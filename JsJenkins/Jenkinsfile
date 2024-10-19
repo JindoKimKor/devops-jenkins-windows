@@ -132,7 +132,8 @@ pipeline {
         }
         stage('Install Dependencies'){
             steps {
-                script {                    
+                script {    
+                    //MUST USE BAT for npm commands, otherwise jenkins tries to use WSL for a linux distro                
                     echo "Dependencies step"
                     echo "Check NPM"
 
@@ -141,12 +142,15 @@ pipeline {
                     bat 'npm config ls'
 
                     echo "Install dependencies for client"
+                    bat "echo Project directory: \"${PROJECT_DIR}\\client\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\client\""
 
                     echo "Install dependencies for client-portual"
+                    bat "echo Project directory: \"${PROJECT_DIR}\\client-portual\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\client-portual\""
 
                     echo "Install dependencies for server"
+                    bat "echo Project directory: \"${PROJECT_DIR}\\server\""
                     bat "npm install --prefix \"${PROJECT_DIR}\\server\""
                 }
             }
