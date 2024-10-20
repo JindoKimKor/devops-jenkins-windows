@@ -1,6 +1,5 @@
 //This function will check all the initial subdirectories 1 level under the project folder and 
-//if it finds a package.json file, it will then CD and install in the directory, before exiting it
-//will change the directory back to the one it was passed
+//if it finds a package.json file, it will then CD and install in the directory.
 def installNPMInSubDirs(projectFolder){
     echo "Project directory: ${projectFolder}"
 
