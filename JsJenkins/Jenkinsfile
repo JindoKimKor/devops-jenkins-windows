@@ -143,6 +143,9 @@ pipeline {
 
                     echo 'Install dependencies in subdirectories'
                     util.installNPMInSubDirs(PROJECT_DIR)
+
+                    // Change back to default directory
+                    bat(script: 'cd "' + WORKSPACE + '"') 
                 }
             }
         }

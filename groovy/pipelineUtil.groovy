@@ -21,9 +21,6 @@ def installNPMInSubDirs(projectFolder){
     } else {
         echo "No package.json files found in the immediate subdirectories of ${projectFolder}."
     }
-
-    // Change back to PROJECT_DIR
-    bat(script: 'cd "' + projectFolder + '"')
 }
 
 // Checks whether a branch is up to date with the destination branch by seeing if it is an ancestor of the destination.
