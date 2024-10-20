@@ -4,23 +4,15 @@
 def installNPMInSubDirs(projectFolder){
     echo "Project directory: ${projectFolder}"
 
-    // Corrected command to list immediate subdirectories with package.json
-    def command = 'for /d %d in ("' + projectFolder + '\\*") do @if exist "%d\\package.json" echo %d'
-    echo "Executing command: ${command}"
-
-    // List the immediate subdirectories and check for package.json files
-    def subDirs = bat(script: command, returnStdout: true).trim()
+    def projectDir = new File(projectFolder)
+    def subDirs = projectDir.listFiles().findAll { it.isDirectory() && new File(it, 'package.json').exists() }
 
     if (subDirs) {
-        // Split the output into an array of directory paths
-        def packageJsonDirs = subDirs.split("\\r?\\n")
-
-        // Loop through each directory path and run npm install
-        for (def dir : packageJsonDirs) {
+        for (def dir : subDirs) {
             echo "Installing dependencies in directory: ${dir}"
 
             // Prepare the command for npm install
-            def npmCommand = 'cd "' + dir + '" && npm install'
+            def npmCommand = 'cd "' + dir.absolutePath + '" && npm install'
             echo "Running command: ${npmCommand}"
 
             // Run npm install in the directory containing the package.json
