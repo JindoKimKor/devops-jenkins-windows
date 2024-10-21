@@ -80,36 +80,44 @@ def getUnityExecutable(workspace, projectDir) {
 // Runs a Unity project's tests of a specified type, while also allowing optional code coverage and test reporting.
 def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReporting, deploymentBuild) {
     //setup for commands/executable
-
+ 
     def logFile = "${reportDir}/test_results/${testType}-tests.log"
-
-    def reportSettings = (enableReporting) ? """ \
+ 
+    def reportSettings = ""
+    
+    if(enableReporting){
+        reportSettings = """ \
         -testResults \"${reportDir}/test_results/${testType}-results.xml\" \
         -debugCodeOptimization \
         -enableCodeCoverage \
-        -coverageResultsPath \"${reportDir}/coverage_results\" \
-        -coverageOptions \"generateAdditionalMetrics;generateHtmlReport;useProjectSettings\"""" : ""
-
-    def flags = "-runTests \
+        -coverageResultsPath \"${REPORT_DIR}/coverage_results\" \
+        -coverageOptions \"useProjectSettings\""""
+    }else{
+        reportSettings = """ \
+        -testResults \"${reportDir}/test_results/${testType}-results.xml\" \
+        -debugCodeOptimization"""
+    }
+ 
+    def flags = "-projectPath \"${projectDir}\" \
         -batchmode \
         -testPlatform ${testType} \
-        -projectPath \"${projectDir}\" \
+        -runTests \
         -logFile \"${logFile}\"${reportSettings}"
-
+ 
     // Allows only PlayMode to run with graphics enabled
     if(testType == "EditMode"){
-        flags += "-nographics"
+        flags += " -nographics"
     }
-
+ 
     if(testType == "PlayMode"){
         flags += " -testCategory BuildServer"
     }
-
+ 
     echo "Flags set to: ${flags}"
-
+ 
     def exitCode = sh (script: """\"${unityExecutable}\" \
         ${flags}""", returnStatus: true)
-
+ 
     if ((exitCode != 0)) {
         if(deploymentBuild){
             error("Test failed with exit code ${exitCode}. Check the log file for more details.")
@@ -172,7 +180,7 @@ def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
 
 // Builds a Unity project.
 def buildProject(reportDir, projectDir, unityExecutable) {
-    def logFile = "${reportDir}/build.log"
+    def logFile = "${reportDir}/build_project_results/build_project.log"
 
     def exitCode = sh (script:"""\"${unityExecutable}\" \
         -quit \
