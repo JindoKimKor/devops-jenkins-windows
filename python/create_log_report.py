@@ -37,7 +37,7 @@ def get_log_lines(path):
 
 editmode_log = get_log_lines(f"{working_dir}/test_results/EditMode-tests.log")
 playmode_log = get_log_lines(f"{working_dir}/test_results/PlayMode-tests.log")
-unity_build_log = get_log_lines(f"{working_dir}/build.log")
+unity_build_log = get_log_lines(f"{working_dir}/build_project_results/build_project.log")
 
 jenkins_log = requests.get(f"{local_build_url}consoleText", auth=(user_pass[0], user_pass[1]))
 

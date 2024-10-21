@@ -34,8 +34,8 @@ pipeline {
 
     environment {
         CI_PIPELINE = "false"
-        PROJECT_DIR = "${WORKSPACE}/Deployment"
-        REPORT_DIR = "${WORKSPACE}/Deployment"
+        PROJECT_DIR = "${WORKSPACE}/Unity_Project"
+        REPORT_DIR = "${WORKSPACE}/DeploymentJob"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
@@ -110,7 +110,7 @@ pipeline {
                 echo "Running Unity in batch mode to setup initial files..."
                 dir ("${PROJECT_DIR}") {
                     script {
-                        def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
+                        def logFile = "${REPORT_DIR}/batchmode_results/batch_mode_execution.log"
                         def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
                         
                         echo "Flags set to: ${flags}"
@@ -131,10 +131,13 @@ pipeline {
         {
             steps{
                 //Linting
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p linting_results"
+                }
                 echo "running lint script"
                 script {
                     echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
-                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
+                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}/linting_results\'", returnStatus: true 
                     echo "After bash call, exit code: ${exitCode}"
                     //handle exit code here no reports to be sent, since this for deployment and not PRs
                     if(exitCode != 0)
@@ -151,6 +154,9 @@ pipeline {
         // We do not want failing tests on main. 
         stage ('EditMode Tests') {
             steps {
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p test_results"
+                }
                 echo "Running EditMode tests..."
                 dir ("${PROJECT_DIR}") {
                     script {
@@ -163,6 +169,7 @@ pipeline {
         // We do not want failing tests on main. This stage is retried 5 times in case of Unity crashes (which are common).
         stage ('PlayMode Tests In Editor'){
             steps {
+
                 echo "Running PlayMode tests..."
                 dir ("${PROJECT_DIR}") {
                     retry (5) {
