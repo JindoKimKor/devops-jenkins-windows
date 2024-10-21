@@ -2,7 +2,7 @@ def editMode = "EditMode"
 def playMode = "PlayMode"
 def util
 def main = "main"
-def dlxList = ["Public Health Inspection", "Paramedic Ambulance", "Trades Electrical"]
+// def dlxList = ["Public Health Inspection", "Paramedic Ambulance", "Trades Electrical"]
 
 
 pipeline {
@@ -43,6 +43,7 @@ pipeline {
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
+        DLX_LIST = "${env.DLX_LIST}"
     }
 
     stages {
