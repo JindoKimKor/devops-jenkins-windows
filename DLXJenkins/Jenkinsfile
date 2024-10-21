@@ -143,7 +143,7 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     script {
                         sh "git checkout ${PR_BRANCH}"
-                        def logFile = "${PROJECT_DIR}/batch_mode_execution.log"
+                        def logFile = "${REPORT_DIR}/batchmode_results/batch_mode_execution.log"
 
                         def flags = "-batchmode -nographics -projectPath \"${PROJECT_DIR}\" -executeMethod \"Packages.Rider.Editor.RiderScriptEditor.SyncSolution\" -logFile \"${logFile}\" -quit "
                         
@@ -163,20 +163,23 @@ pipeline {
         stage('Linting'){
             steps{
                 //Linting
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p linting_results"
+                }
                 echo "running lint script"
                 script {
                     sh "cp -f \'${WORKSPACE}/Bash/.editorconfig\' \'${PROJECT_DIR}\' 2>/dev/null"
                     echo "Parameters for bash: ${WORKSPACE}/Linting.bash ${PROJECT_DIR} ${REPORT_DIR}"
-                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}\'", returnStatus: true 
+                    def exitCode = sh script: "sh \'${WORKSPACE}/Bash/Linting.bash\' \'${PROJECT_DIR}\' \'${REPORT_DIR}/linting_results\'", returnStatus: true 
                     echo "After bash call, exit code: ${exitCode}"
                     //handle exit code here
                     if(exitCode != 0)
                     {
                         echo "Error linting calling report"
-                        echo "Parameters for Python Fail: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
+                        echo "Parameters for Python Fail: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/linting_results/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
                         if(exitCode == 2) //report was generated call python script
                         {
-                            sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
+                            sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/linting_results/format-report.json\' ${COMMIT_HASH} ${fail} \'${PROJECT_DIR}\'"
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
                             error("Linting failed with exit code: ${exitCode}") //we exit no matter what on error code != 0
@@ -184,8 +187,8 @@ pipeline {
                     }
                     else
                     {
-                        echo "Parameters for Python Pass: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
-                        sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
+                        echo "Parameters for Python Pass: \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/linting_results/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
+                        sh script: "python \'${WORKSPACE}/python/linting_error_report.py\' \'${REPORT_DIR}/linting_results/format-report.json\' ${COMMIT_HASH} ${pass} \'${PROJECT_DIR}\'"
                     }
                 }
             }
@@ -195,7 +198,7 @@ pipeline {
         stage('EditMode Tests') {
             steps {
                 dir ("${REPORT_DIR}") {
-                    sh "mkdir -p test_results/EditMode-report"
+                    sh "mkdir -p test_results"
                     sh "mkdir -p coverage_results"
                 }
                 echo "Running EditMode tests..."
@@ -213,9 +216,6 @@ pipeline {
         // PlayMode tests need to be run once in the editor to generate the overall coverage report.
         stage('PlayMode Tests in Editor') {
             steps {
-                dir ("${REPORT_DIR}") {
-                    sh "mkdir -p test_results/PlayMode-report"
-                }
                 echo "Running PlayMode tests in Editor environment..."
                 dir ("${PROJECT_DIR}") {
                     retry (5) {
@@ -236,22 +236,22 @@ pipeline {
                 echo "Generating code coverage report..."
                 dir("${PROJECT_DIR}") {
                     sh """\"${UNITY_EXECUTABLE}\" \
+                    -projectPath . \
                     -batchmode \
+                    -debugCodeOptimization \
                     -nographics \
                     -logFile \"${REPORT_DIR}/coverage_results/coverage_report.log\" \
-                    -projectPath . \
-                    -debugCodeOptimization \
                     -enableCodeCoverage \
                     -coverageResultsPath \"${REPORT_DIR}/coverage_results\" \
-                    -coverageOptions \"generateHtmlReport;generateHtmlReportHistory;generateBadgeReport;generateAdditionalMetrics;useProjectSettings\" \
+                    -coverageOptions \"useProjectSettings\" \
                     -quit"""
-
+ 
                     script {
                         util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/coverage_results/Report", "CodeCoverage")
-
+ 
                         echo "Sending code coverage report to Bitbucket..."
                         util.sendCoverageReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
-                    }   
+                    }  
                 }
             }
         }
