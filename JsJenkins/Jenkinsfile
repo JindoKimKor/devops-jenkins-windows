@@ -5,6 +5,8 @@ def util
 pipeline {
     agent any
 
+    tools {nodejs 'Node'}
+
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
         string(name: 'PR_DESTINATION_BRANCH', defaultValue: '', description: '')
@@ -13,6 +15,7 @@ pipeline {
         string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
+        string(name: 'TEST_RUN', defaultValue: 'Y', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.') //Default value added while we build this pipeline
     }
 
     triggers {
@@ -35,7 +38,7 @@ pipeline {
 
     environment {
         CI_PIPELINE = "true"
-        PROJECT_DIR = "${WORKSPACE}/JS_Project" 
+        PROJECT_DIR = "${WORKSPACE}\\JS_Project" 
         REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
@@ -60,7 +63,7 @@ pipeline {
                     dir("${PROJECT_DIR}"){
                         env.CURRENT_HASH = util.getCurrentCommitHash()
                         // confirm if PR commits are updated and if no commits are updated, abort the pipeline
-                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH)){
+                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH && !TEST_RUN.equals("Y"))){
                             env.FAILURE_REASON = "No commits updated. Exiting the pipeline..."
                             currentBuild.result = 'ABORTED'
                             error(env.FAILURE_REASON)
@@ -125,6 +128,25 @@ pipeline {
                         }
                     }
                 }   
+            }
+        }
+        stage('Install Dependencies'){
+            steps {
+                script {    
+                    //MUST USE BAT for npm commands, otherwise jenkins tries to use WSL for a linux distro                
+                    echo "Dependencies step"
+                    echo "Check NPM"
+
+                    bat 'node -v'
+                    bat 'npm -v'
+                    bat 'npm config ls'
+
+                    echo 'Install dependencies in subdirectories'
+                    util.installNPMInSubDirs(PROJECT_DIR)
+
+                    // Change back to default directory
+                    bat(script: 'cd "' + WORKSPACE + '"') 
+                }
             }
         }
         stage('Linting'){
