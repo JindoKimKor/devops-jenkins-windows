@@ -37,7 +37,9 @@ else
     echo "Solution File found: $SOLUTION_FILE"
 fi
 
-# Run dotnet format on the solution file
+#format first to get rid of whitespace
+dotnet format "$SOLUTION_FILE" > /dev/null
+# Run dotnet format on the solution file to check out custom rules 
 dotnet format "$SOLUTION_FILE" --verify-no-changes -v q
 
 RETVAL=$?
