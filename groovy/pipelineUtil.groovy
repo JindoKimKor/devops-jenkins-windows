@@ -188,7 +188,7 @@ def parseTicketNumber(branchName) {
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
 def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType) {
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-    \"sudo mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
+    \"mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
     && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
     && sudo chmod -R 755 /var/www/html/${remoteProjectFolderName}/Reports \""""
 
