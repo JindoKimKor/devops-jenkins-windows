@@ -55,13 +55,8 @@ def sendBuildStatus(workspace, state, commitHash, deployment = "") {
 }
 
 // Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
-def sendTestReport(workspace, reportDir, commitHash, testMode) {
-    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${commitHash}\' \'${reportDir}/test_results\' \'${testMode}\'"
-}
-
-// Sends a code coverage report to Bitbucket Cloud API.
-def sendCoverageReport(workspace, reportDir, commitHash) {
-    sh "python \'${workspace}/python/create_bitbucket_codecoverage_report.py\' \'${commitHash}\' \'${reportDir}/coverage_results/Report\'"
+def sendTestReport(workspace, reportDir, commitHash) {
+    sh "python \'${workspace}/python/create_bitbucket_test_report.py\' \'${commitHash}\' \'${reportDir}\'"
 }
 
 // Parses the given log for any errors recorded in a text file of known errors. Not currently in use.

@@ -205,9 +205,6 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     script {
                         util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, true, false)
-
-                        echo "Sending EditMode test results to Bitbucket..."
-                        util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, editMode)
                     }
                 }
             }
@@ -221,9 +218,6 @@ pipeline {
                     retry (5) {
                         script {
                             util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, true, false)
-
-                            echo "Sending PlayMode test results to Bitbucket..."
-                            util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH, playMode)
                         }
                     }
                 }
@@ -231,7 +225,7 @@ pipeline {
         }
         // Merges the two coverage reports from the EditMode and PlayMode (editor) reports into one.
         // Then sends a coverage report to Bitbucket.
-        stage('Generate Code Coverage Report') {
+        stage('Send Reports') {
             steps {
                 echo "Generating code coverage report..."
                 dir("${PROJECT_DIR}") {
@@ -248,10 +242,11 @@ pipeline {
  
                     script {
                         util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/coverage_results/Report", "CodeCoverage")
- 
-                        echo "Sending code coverage report to Bitbucket..."
-                        util.sendCoverageReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
                     }  
+                }
+                echo "Sending test report."
+                script {
+                    util.sendTestReport(WORKSPACE, REPORT_DIR, COMMIT_HASH)
                 }
             }
         }
