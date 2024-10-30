@@ -1,8 +1,10 @@
 def util
-def main = "main"
+def mainBranches = ["main", "master"]
 
 pipeline {
     agent any
+
+    tools {nodejs 'Node'}
 
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
@@ -32,8 +34,8 @@ pipeline {
 
     environment {
         CI_PIPELINE = "false"
-        PROJECT_DIR = "${WORKSPACE}/Deployment"
-        REPORT_DIR = "${WORKSPACE}/Deployment"
+        PROJECT_DIR = "${WORKSPACE}/JS_Project"
+        REPORT_DIR = "${WORKSPACE}/DeploymentJob"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
@@ -46,7 +48,7 @@ pipeline {
             steps {
                 script {
                     // Aborts the pipeline if it's not merging into the main.
-                    if(!env.DESTINATION_BRANCH.equals(main)){
+                    if(!mainBranches.contains(DESTINATION_BRANCH)){
                         env.FAILURE_REASON = "Not merging to the main branch. Exiting the pipeline..."
                         currentBuild.result = 'ABORTED'
                         error(env.FAILURE_REASON)
@@ -89,7 +91,7 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     // Ensure it stays in the main branch
                     echo "Checkout to the main branch..."
-                    sh "git checkout ${main}"
+                    sh "git checkout ${DESTINATION_BRANCH}"
                     echo "Cleaning project..."
                     sh "git reset --hard HEAD"
                     echo "Pulling latest version of default branch..."
@@ -99,6 +101,27 @@ pipeline {
                 script {
                     echo "Sending \'In Progress\' status to Bitbucket..."
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
+                    env.TEST_DIRECTORIES = util.findTestingDirs(PROJECT_DIR)
+                    echo "Testing directories: ${env.TEST_DIRECTORIES}"
+                }
+            }
+        }
+        stage('Install Dependencies'){
+            steps {
+                script {    
+                    //MUST USE BAT for npm commands, otherwise jenkins tries to use WSL for a linux distro                
+                    echo "Dependencies step"
+                    echo "Check NPM"
+
+                    bat 'node -v'
+                    bat 'npm -v'
+                    bat 'npm config ls'
+
+                    echo 'Install dependencies in testing directories'
+                    util.installNpmInTestingDirs(env.TEST_DIRECTORIES)
+
+                    // Change back to default directory
+                    bat(script: 'cd "' + WORKSPACE + '"') 
                 }
             }
         }
@@ -106,8 +129,12 @@ pipeline {
         stage('Linting')
         {
             steps{
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p linting_results"
+                }
                 script {
                     echo "Linting step"
+                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, true)
                 }
             }
         }

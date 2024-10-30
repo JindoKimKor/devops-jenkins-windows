@@ -73,6 +73,9 @@ pipeline {
                     util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
                     env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
+                    // Save directories pipeline is going to test.
+                    env.TEST_DIRECTORIES = util.findTestingDirs(PROJECT_DIR)
+                    echo "Testing directories: ${env.TEST_DIRECTORIES}"
                 }
                 
                 // Workspace Preparation 
@@ -127,6 +130,7 @@ pipeline {
                             }
                         }
                     }
+                    sh "git checkout ${PR_BRANCH}"
                 }   
             }
         }
@@ -141,8 +145,8 @@ pipeline {
                     bat 'npm -v'
                     bat 'npm config ls'
 
-                    echo 'Install dependencies in subdirectories'
-                    util.installNPMInSubDirs(PROJECT_DIR)
+                    echo 'Install dependencies in testing directories'
+                    util.installNpmInTestingDirs(env.TEST_DIRECTORIES)
 
                     // Change back to default directory
                     bat(script: 'cd "' + WORKSPACE + '"') 
@@ -151,8 +155,12 @@ pipeline {
         }
         stage('Linting'){
             steps {
+                dir ("${REPORT_DIR}") {
+                    sh "mkdir -p linting_results"
+                }
                 script {
                     echo "Linting step"
+                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
                 }
             }
         }

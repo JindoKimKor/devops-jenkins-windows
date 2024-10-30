@@ -1,24 +1,71 @@
-//This function will check all the initial subdirectories 1 level under the project folder and 
-//if it finds a package.json file, it will then CD and install in the directory.
-def installNPMInSubDirs(projectFolder){
-    echo "Project directory: ${projectFolder}"
+import groovy.json.JsonSlurper
 
+// Checks the subdirectories 1 level under the project root folder, to find the correct testing directories and  store the folder paths in env.  
+def findTestingDirs(projectFolder){
+    def directoriesToTest = []
     def projectDir = new File(projectFolder)
+
+    // Check if the subdirectories have pacakge.json file
     def subDirs = projectDir.listFiles().findAll { it.isDirectory() && new File(it, 'package.json').exists() }
 
-    if (subDirs) {
-        for (def dir : subDirs) {
-            echo "Installing dependencies in directory: ${dir}"
+    if(subDirs){
+        for(def dir:subDirs){
+            echo "dir: ${dir}"
+            directoriesToTest.add(dir.absolutePath)
+        }
+    }else{
+        echo "No subDirs are available"  
+    }
+    return directoriesToTest.join(',')
+}
 
-            // Prepare the command for npm install
-            def npmCommand = 'cd "' + dir.absolutePath + '" && npm install'
+// This function will change directory to testing directories to install dependencies.
+def installNpmInTestingDirs(testingDirs){
+    def testDirs = testingDirs.split(',')
+    if(testDirs){
+        for (def dirPath : testDirs){ 
+            def npmCommand = 'cd "' + dirPath + '" && npm install'
             echo "Running command: ${npmCommand}"
 
             // Run npm install in the directory containing the package.json
             bat(script: npmCommand)
         }
-    } else {
-        echo "No package.json files found in the immediate subdirectories of ${projectFolder}."
+    }
+    else{
+        echo "Tesing directories don't exist."
+    }
+}
+
+def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploymentBuild){
+    def testDirs = testingDirs.split(',')
+
+    if(testDirs){
+        for (def dirPath : testDirs){
+            def dirName = dirPath.split('\\\\')[-1]
+            echo "Currently working on ${dirName} directory."
+
+            def lintCommand = "cd ${dirPath} && npm run lint"
+            if(enableReporting){
+                lintCommand += " -- -f html -o ${reportDir}/linting_results/${dirName}-lint-results.html > ${reportDir}/linting_results/${dirName}_linting_log.txt 2>&1"
+            }
+            def exitCode = bat(script: lintCommand, returnStatus: true)
+
+            if(exitCode == 0){
+                echo "Linting completed successfully for \"${dirPath}\""
+                // sh "rm ${reportDir}/linting_results/${dirName}_linting_log.txt"
+            }else{
+                if(deploymentBuild){
+                    error("Linting failed with exit code ${exitCode}.")
+                    sh "exit ${exitCode}"
+                }
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
+                    error("Linting failed in \"${dirPath}\" with exit code ${exitCode}") 
+                }
+            }
+        }
+    }
+    else{
+        echo "Tesing directories don't exist."
     }
 }
 
