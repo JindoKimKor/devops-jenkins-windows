@@ -134,7 +134,7 @@ pipeline {
                 }
                 script {
                     echo "Linting step"
-                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, true)
+                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, false) //* Set the deploymentBuild argument as "false" for now 
                 }
             }
         }

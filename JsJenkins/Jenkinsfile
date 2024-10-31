@@ -39,7 +39,7 @@ pipeline {
     environment {
         CI_PIPELINE = "true"
         PROJECT_DIR = "${WORKSPACE}\\JS_Project" 
-        REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}"
+        REPORT_DIR = "${WORKSPACE}/PRJob/${PR_BRANCH}/Build_${BUILD_NUMBER}"
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
@@ -161,6 +161,7 @@ pipeline {
                 script {
                     echo "Linting step"
                     util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
+                    util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
                 }
             }
         }
@@ -196,17 +197,17 @@ pipeline {
     post {
         success {
             script {
-                util.postBuildJS("SUCCESSFUL")
+                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, "", "-js")
             }
         }
         failure {
             script {
-                util.postBuildJS("FAILED")
+                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, "", "-js")
             }
         }
         aborted {
             script {
-                util.postBuildJS("STOPPED")
+                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, "", "-js")
             }
         }
     }

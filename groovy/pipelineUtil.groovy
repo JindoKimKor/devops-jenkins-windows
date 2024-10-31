@@ -97,8 +97,8 @@ def isEqualCommitHash(currentHash, commitHash){
 }
 
 // Sends a build status to Bitbucket Cloud API.
-def sendBuildStatus(workspace, state, commitHash, deployment = "") {
-    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state} ${deployment}"
+def sendBuildStatus(workspace, state, commitHash, deployment = "", javascript = "") {
+    sh "python \'${workspace}/python/send_bitbucket_build_status.py\' ${commitHash} ${state} ${deployment} ${javascript}"
 }
 
 // Sends a test report to Bitbucket Cloud API. Testmode can either be EditMode or PlayMode.
@@ -228,14 +228,17 @@ def parseTicketNumber(branchName) {
 }
 
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
-def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType) {
+def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType, buildNumber = null) {
+    def destinationDir = "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report" if !buildNumber else "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}/${reportType}-report"
+
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
-    \"mkdir -p /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
-    && sudo chown vconadmin:vconadmin /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report \
+    \"mkdir -p ${destinationDir} \
+    && sudo chown vconadmin:vconadmin ${destinationDir} \
+    && sudo chmod 755 /var/www/html/${remoteProjectFolderName} \
     && sudo chmod -R 755 /var/www/html/${remoteProjectFolderName}/Reports \""""
 
     sh "scp -i C:/Users/ci-catherine/.ssh/vconkey1.pem -rp \"${reportDir}/*\" \
-    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report\""
+    \"vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com:${destinationDir}\""
 }
 
 // Deletes a branch's reports from the web server after it has been merged.
@@ -282,7 +285,8 @@ def postBuild(status) {
 
 // A method for post-build PR actions. 
 // This one is specific to our JS pipelines as there are no Unity Logs
-def postBuildJS(status) {
-    sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH)
-}
+// def postBuildJS(status) {
+//     sendBuildStatus(env.WORKSPACE, status, env.COMMIT_HASH, "", "-js")
+// }
+
 return this
