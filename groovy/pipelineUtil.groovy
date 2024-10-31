@@ -229,7 +229,7 @@ def parseTicketNumber(branchName) {
 
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
 def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType, buildNumber = null) {
-    def destinationDir = "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report" if !buildNumber else "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}/${reportType}-report"
+    def destinationDir = buildNumber ? "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}/${reportType}-report" : "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report"
 
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"mkdir -p ${destinationDir} \
