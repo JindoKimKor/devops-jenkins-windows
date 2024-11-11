@@ -1,6 +1,7 @@
 def editMode = "EditMode"
 def playMode = "PlayMode"
-def util
+def generalUtil
+def unityUtil
 def main = "main"
 
 
@@ -58,7 +59,9 @@ pipeline {
                         error(env.FAILURE_REASON)
                     }
 
-                    util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
+                    generalUtil = load("${WORKSPACE}/groovy/generalHelper.groovy")
+                    unityUtil = load("${WORKSPACE}/groovy/unityHelper.groovy")
+
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
                     if(!branch_path.isEmpty()){
@@ -67,8 +70,8 @@ pipeline {
                     }
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
-                    def ticketNumber = util.parseTicketNumber(PR_BRANCH)
-                    util.cleanMergedBranchReportsFromWebServer(FOLDER_NAME, ticketNumber)
+                    def ticketNumber = generalUtil.parseTicketNumber(PR_BRANCH)
+                    generalUtil.cleanMergedBranchReportsFromWebServer(FOLDER_NAME, ticketNumber)
                 }
             }
         }
@@ -82,7 +85,7 @@ pipeline {
                 script {
                     // Getting the full commit hash from git in order to send the build status to Bitbucket.
                     script {
-                        env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                        env.COMMIT_HASH = generalUtil.getFullCommitHash(WORKSPACE, PR_COMMIT)
                         //env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
 
@@ -104,10 +107,10 @@ pipeline {
 
                 script {
                     echo "Sending \'In Progress\' status to Bitbucket..."
-                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
+                    generalUtil.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
 
                     echo "Identifying Unity version..."
-                    env.UNITY_EXECUTABLE = util.getUnityExecutable(WORKSPACE, PROJECT_DIR)
+                    env.UNITY_EXECUTABLE = unityUtil.getUnityExecutable(WORKSPACE, PROJECT_DIR)
                 }
 
                 // Initial running the project on Unity Editor    
@@ -164,7 +167,7 @@ pipeline {
                 echo "Running EditMode tests..."
                 dir ("${PROJECT_DIR}") {
                     script {
-                        util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, false, true)
+                        unityUtil.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, editMode, false, true)
                     }
                 }
             }
@@ -178,7 +181,7 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     retry (5) {
                         script {
-                            util.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, false, true)
+                            unityUtil.runUnityTests(UNITY_EXECUTABLE, REPORT_DIR, PROJECT_DIR, playMode, false, true)
                         }
                     }
                 }
@@ -193,7 +196,7 @@ pipeline {
 
                 retry (5) {
                     script {
-                        util.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
+                        unityUtil.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
                     }
                 }
             }
@@ -233,17 +236,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, true)
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, true)
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, true)
             }
         }
     }

@@ -9,8 +9,8 @@ parser = argparse.ArgumentParser(description="Arguments for sending Bitbucket bu
 parser.add_argument("pr-commit", help="The full SHA hash of the commit where the build status will be sent.")
 parser.add_argument("pr-status", choices=['SUCCESSFUL', 'FAILED', 'STOPPED', 'INPROGRESS'])
 parser.add_argument("-d", "--deployment", action='store_true', help="Flag to use if we are updating a deployment build status.")
-parser.add_argument("-desc", "--description", help="An optional argument for adding additional information to the build description.")
 parser.add_argument("-js", "--javascript",action='store_true', help="An optional argument to set the different build_url.")
+parser.add_argument("-desc", "--description", help="An optional argument for adding additional information to the build description.")
 args = vars(parser.parse_args())
 
 # Environment variables:
@@ -25,7 +25,8 @@ build_number = os.getenv('BUILD_NUMBER')
 url = f'{pr_repo}/commit/{args["pr-commit"]}/statuses/build'
 description = f"{args['pr-status']}: {args['description']}" if (args['description'] != None) else args['pr-status']
 
-if args['pr-status'] == "SUCCESSFUL" and args['deployment'] == True:
+# No need to change argument parsing since `action='store_true'` handles boolean values
+if args['pr-status'] == "SUCCESSFUL" and args['deployment']:
     build_url = f"https://webdlx.vconestoga.com/{folder_name}"
 elif args['pr-status'] != "INPROGRESS":
     if not args['javascript']:
@@ -34,6 +35,7 @@ elif args['pr-status'] != "INPROGRESS":
         build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/Build-{build_number}/Linting-report/client-lint-results.html"
 else:
     build_url = os.getenv('BUILD_URL')
+
 
 headers = {
     "Accept": "application/json",

@@ -1,4 +1,5 @@
-def util
+def generalUtil
+def jsUtil
 def mainBranches = ["main", "master"]
 
 pipeline {
@@ -54,7 +55,9 @@ pipeline {
                         error(env.FAILURE_REASON)
                     }
 
-                    util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
+                    generalUtil = load("${WORKSPACE}/groovy/generalHelper.groovy")
+                    jsUtil = load("${WORKSPACE}/groovy/jsHelper.groovy")
+                    
                     def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
                     branch_path = branch_path.trim()
                     if(!branch_path.isEmpty()){
@@ -63,8 +66,8 @@ pipeline {
                     }
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
-                    def ticketNumber = util.parseTicketNumber(PR_BRANCH)
-                    util.cleanMergedBranchReportsFromWebServer(FOLDER_NAME, ticketNumber)
+                    def ticketNumber = generalUtil.parseTicketNumber(PR_BRANCH)
+                    generalUtil.cleanMergedBranchReportsFromWebServer(FOLDER_NAME, ticketNumber)
                 }
             }
         }
@@ -78,7 +81,7 @@ pipeline {
                 script {
                     // Getting the full commit hash from git in order to send the build status to Bitbucket.
                     script {
-                        env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
+                        env.COMMIT_HASH = generalUtil.getFullCommitHash(WORKSPACE, PR_COMMIT)
                         //env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
 
@@ -100,8 +103,8 @@ pipeline {
 
                 script {
                     echo "Sending \'In Progress\' status to Bitbucket..."
-                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
-                    env.TEST_DIRECTORIES = util.findTestingDirs(PROJECT_DIR)
+                    generalUtil.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
+                    env.TEST_DIRECTORIES = jsUtil.findTestingDirs(PROJECT_DIR)
                     echo "Testing directories: ${env.TEST_DIRECTORIES}"
                 }
             }
@@ -118,7 +121,7 @@ pipeline {
                     bat 'npm config ls'
 
                     echo 'Install dependencies in testing directories'
-                    util.installNpmInTestingDirs(env.TEST_DIRECTORIES)
+                    jsUtil.installNpmInTestingDirs(env.TEST_DIRECTORIES)
 
                     // Change back to default directory
                     bat(script: 'cd "' + WORKSPACE + '"') 
@@ -134,7 +137,7 @@ pipeline {
                 }
                 script {
                     echo "Linting step"
-                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, false) //* Set the deploymentBuild argument as "false" for now 
+                    jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, false) //* Set the deploymentBuild argument as "false" for now 
                 }
             }
         }
@@ -169,17 +172,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, true, true)
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, true, true)
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, "-d")
+                generalUtil.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, true, true)
             }
         }
     }

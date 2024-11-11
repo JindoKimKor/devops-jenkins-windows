@@ -24,9 +24,15 @@ headers = {
 }
 
 # Retrieving the commit data from Bitbucket Cloud API.
-response = requests.get(url, headers=headers)
-response_json_content = json.dumps(response.json())
-response_values = json.loads(response_json_content)
-
-# Printed to the console so the pipeline script can retrieve it.
-sys.stdout.write(response_values["hash"])
+try:
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()  # Raise an error for bad status codes
+    response_data = response.json()
+    if "hash" in response_data:
+        sys.stdout.write(response_data["hash"])
+    else:
+        sys.stderr.write("Error: 'hash' key not found in response.\n")
+        sys.exit(1)
+except requests.RequestException as e:
+    sys.stderr.write(f"Error retrieving commit hash from Bitbucket: {e}\n")
+    sys.exit(1)

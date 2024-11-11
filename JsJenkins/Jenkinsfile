@@ -1,6 +1,7 @@
 def pass = "Pass"
 def fail = "Fail"
-def util
+def generalUtil
+def jsUtil
 
 pipeline {
     agent any
@@ -43,95 +44,34 @@ pipeline {
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         JENKINS_API_KEY = credentials('jenkins-api-key')
+        REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
+        DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
     }
 
     stages {
         // Prepare Workspace: Environment Setup, Workspace Preparation(Branch Management), Unity Setup, Initial running the project on Unity Editor
         stage('Prepare Workspace') {
-            // Environment Setup
-            environment {
-                REPO_SSH = "git@bitbucket.org:${PR_PROJECT}.git"
-                DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
-            }
             steps {
                 //send 'In Progress' status to Bitbucket
                 script {
                     // print jenkins env configurations
                     sh 'env'
-                    util = load("${WORKSPACE}/groovy/pipelineUtil.groovy")
-                    env.COMMIT_HASH = util.getFullCommitHash(WORKSPACE, PR_COMMIT)
-                    dir("${PROJECT_DIR}"){
-                        env.CURRENT_HASH = util.getCurrentCommitHash()
-                        // confirm if PR commits are updated and if no commits are updated, abort the pipeline
-                        if(util.isEqualCommitHash(CURRENT_HASH, COMMIT_HASH && !TEST_RUN.equals("Y"))){
-                            env.FAILURE_REASON = "No commits updated. Exiting the pipeline..."
-                            currentBuild.result = 'ABORTED'
-                            error(env.FAILURE_REASON)
-                        }
-                    }
-                    echo "Sending \'In Progress\' status to Bitbucket..."
-                    util.sendBuildStatus(WORKSPACE, "INPROGRESS", COMMIT_HASH)
-                    env.TICKET_NUMBER = util.parseTicketNumber(PR_BRANCH)
-                    env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
-                    // Save directories pipeline is going to test.
-                    env.TEST_DIRECTORIES = util.findTestingDirs(PROJECT_DIR)
+                    generalUtil = load("${WORKSPACE}/groovy/generalHelper.groovy")
+                    jsUtil = load("${WORKSPACE}/groovy/jsHelper.groovy")
+
+                    env.COMMIT_HASH = generalUtil.validateCommitHashes(WORKSPACE, PROJECT_DIR, PR_COMMIT, TEST_RUN)
+                    echo env.COMMIT_HASH
+                    generalUtil.initializeEnvironment(WORKSPACE, env.COMMIT_HASH, PR_BRANCH, PROJECT_DIR)
+
+                    generalUtil.cloneOrUpdateRepo(PROJECT_DIR, REPO_SSH, PR_BRANCH)
+
+                    generalUtil.mergeBranchIfNeeded()
+                    generalUtil.checkoutBranch(PROJECT_DIR, PR_BRANCH) 
+
+                    // Save directories pipeline is going to test. unique to JS pipeline
+                    env.TEST_DIRECTORIES = jsUtil.findTestingDirs(PROJECT_DIR)
                     echo "Testing directories: ${env.TEST_DIRECTORIES}"
-                }
-                
-                // Workspace Preparation 
-                script {
-                    // Scenario 1: Project directory does not exist on the VM
-                    // Action: Clone the repository to initialize the project directory.
-                    echo "Directory Checking if it original project exists"
-                    if (!fileExists("${PROJECT_DIR}")) {
-                        echo "Cloning repository..."
-                        sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
-                        
-                    } else {
-                        // Scenario 2: Project directory and .git directory exist
-                        // Action: Remove any existing git index lock and fetch the latest updates.
-                        if (fileExists("${PROJECT_DIR}/.git")) {
-                            sh "rm -f '${PROJECT_DIR}/.git/index.lock'"
-
-                            echo "Fetching latest changes..."
-                            dir ("${PROJECT_DIR}") {         
-
-                            sh "git fetch origin"
-                            sh "git reset --hard origin/${PR_BRANCH}"
-                            }
-                        } 
-                        // Scenario 3: Project directory exists but .git directory is missing or corrupted
-                        // Action: Clean the directory and clone the repository afresh.
-                        else { 
-                            echo "Cleaning workspace..."
-                            sh "rm -rf '${PROJECT_DIR}'"
-                            echo "Cloning repository..."
-                            sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""   
-                        }
-                    }
-                }
-
-                dir ("${PROJECT_DIR}") {
-                    script {                                           
-                        echo "Checking if branch is up to date..."
-                        if (util.isBranchUpToDate(DESTINATION_BRANCH) == 0) {
-                            echo "Branch is up to date."
-                        }
-                        else {
-                            echo "Branch needs to be updated. Merging destination branch into main..."
-                        
-                            if (util.tryMerge(DESTINATION_BRANCH) == 0) {
-                                echo "Merge successful."
-                            }
-                            else {
-                                sh "git merge --abort"
-                                env.FAILURE_REASON = "Merge errors found. Merge aborted."
-                                error(env.FAILURE_REASON)
-                            }
-                        }
-                    }
-                    sh "git checkout ${PR_BRANCH}"
-                }   
+                } 
             }
         }
         stage('Install Dependencies'){
@@ -141,12 +81,10 @@ pipeline {
                     echo "Dependencies step"
                     echo "Check NPM"
 
-                    bat 'node -v'
-                    bat 'npm -v'
-                    bat 'npm config ls'
+                    jsUtil.checkNodeVersion()
 
                     echo 'Install dependencies in testing directories'
-                    util.installNpmInTestingDirs(env.TEST_DIRECTORIES)
+                    jsUtil.installNpmInTestingDirs(env.TEST_DIRECTORIES)
 
                     // Change back to default directory
                     bat(script: 'cd "' + WORKSPACE + '"') 
@@ -160,8 +98,11 @@ pipeline {
                 }
                 script {
                     echo "Linting step"
-                    util.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
-                    util.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
+                    //surrounded the whole block in catch error incase publishing fails
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
+                        jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
+                        generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
+                    }
                 }
             }
         }
@@ -197,17 +138,17 @@ pipeline {
     post {
         success {
             script {
-                util.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, "", "-js")
+                generalUtil.sendBuildStatus(WORKSPACE, "SUCCESSFUL", COMMIT_HASH, false, true)
             }
         }
         failure {
             script {
-                util.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, "", "-js")
+                generalUtil.sendBuildStatus(WORKSPACE, "FAILED", COMMIT_HASH, false, true)
             }
         }
         aborted {
             script {
-                util.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, "", "-js")
+                generalUtil.sendBuildStatus(WORKSPACE, "STOPPED", COMMIT_HASH, false, true)
             }
         }
     }
