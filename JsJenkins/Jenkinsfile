@@ -71,6 +71,10 @@ pipeline {
                     // Save directories pipeline is going to test. unique to JS pipeline
                     env.TEST_DIRECTORIES = jsUtil.findTestingDirs(PROJECT_DIR)
                     echo "Testing directories: ${env.TEST_DIRECTORIES}"
+
+                    // Copy Centered Test Report link to this PR pipeline
+                    echo "Report copied to ${REPORT_DIR}"
+                    sh "cp ${WORKSPACE}/PRJob/reports.html ${REPORT_DIR}/reports.html"
                 } 
             }
         }
