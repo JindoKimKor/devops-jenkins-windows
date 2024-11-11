@@ -74,7 +74,9 @@ pipeline {
 
                     // Copy Centered Test Report link to this PR pipeline
                     echo "Report copied to ${REPORT_DIR}"
+                    dir ("${WORKSPACE}") {
                     sh "cp ${WORKSPACE}/PRJob/reports.html ${REPORT_DIR}/reports.html"
+                    }
                 } 
             }
         }
