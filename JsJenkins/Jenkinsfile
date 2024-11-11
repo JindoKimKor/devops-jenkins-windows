@@ -74,7 +74,7 @@ pipeline {
 
                     // Copy Centered Test Report link to this PR pipeline
                     echo "Report copied to ${REPORT_DIR}"
-                    bat "copy \"${WORKSPACE}\\PRJob\\reports.html\" \"${REPORT_DIR}\\reports.html\""
+                    bat "copy \"${WORKSPACE}\\PRJob\\reports.html\" \"${WORKSPACE}\\PRJob\\${PR_BRANCH}\\Build_${BUILD_NUMBER}\\reports.html\""
                 } 
             }
         }
