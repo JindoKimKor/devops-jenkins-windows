@@ -76,7 +76,12 @@ pipeline {
                     echo "Report copied to ${REPORT_DIR}"
                     bat "if not exist \"${WORKSPACE}\\PRJob\\${PR_BRANCH}\\Build_${BUILD_NUMBER}\" mkdir \"${WORKSPACE}\\PRJob\\${PR_BRANCH}\\Build_${BUILD_NUMBER}\""
                     bat "copy \"${WORKSPACE}\\PRJob\\reports.html\" \"${WORKSPACE}\\PRJob\\${PR_BRANCH}\\Build_${BUILD_NUMBER}\\reports.html\""
-                } 
+                }
+                script {
+                    // Copy Centered Test Report link to this PR pipeline
+                    echo "Report copied to ${REPORT_DIR}"
+                    generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}", "Report_file", BUILD_NUMBER)
+                }
             }
         }
         stage('Install Dependencies'){
