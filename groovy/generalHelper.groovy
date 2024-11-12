@@ -204,7 +204,7 @@ def copyResultsHtmlFileToWebServer(remoteProjectFolderName, ticketNumber, report
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
 def publishTestResultsHtmlToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType, buildNumber = null) {
     echo "Attempting to publish results to web server"
-    def destinationDir = buildNumber ? "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}/${reportType}-report" : "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-report"
+    def destinationDir = buildNumber ? "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}/${reportType}-reports" : "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/${reportType}-reports"
 
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"mkdir -p ${destinationDir} \
