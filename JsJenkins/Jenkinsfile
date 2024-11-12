@@ -106,7 +106,7 @@ pipeline {
                     //surrounded the whole block in catch error incase publishing fails
                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
                         jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
-                        generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
+                        generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_result", "Linting", BUILD_NUMBER)
                     }
                 }
             }
