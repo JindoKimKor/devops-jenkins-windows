@@ -188,7 +188,7 @@ def parseTicketNumber(branchName) {
 
 // Publishes a test result HTML file to the VARLab's remote web server for hosting.
 def copyResultsHtmlFileToWebServer(remoteProjectFolderName, ticketNumber, reportDir, reportType, buildNumber = null) {
-    echo "Attempting to publish results to web server"
+    echo "Attempting to copy html report file to web server"
     def destinationDir = buildNumber ? "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}/Build-${buildNumber}" : "/var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}"
 
      sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \

@@ -80,7 +80,7 @@ pipeline {
                 script {
                     // Copy Centered Test Report link to this PR pipeline
                     echo "Report copied to ${REPORT_DIR}"
-                    generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}", "Report_file", BUILD_NUMBER)
+                    generalUtil.copyResultsHtmlFileToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}", "Report_file", BUILD_NUMBER)
                 }
             }
         }
