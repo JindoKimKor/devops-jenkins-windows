@@ -106,6 +106,25 @@ pipeline {
                 }
             }
         }
+        // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
+        stage('Static Analysis'){
+            environment{
+                SONARQUBE_SERVER="SonarServer"
+                SONAR_PROJECT_KEY="Asset-store"
+                SONAR_URL="http://localhost:9000"
+                SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
+            }
+            steps {
+                withSonarQubeEnv(SONARQUBE_SERVER) {
+                    sh """
+                            sonar-scanner.bat -D"sonar.projectKey=${SONAR_PROJECT_KEY}" \
+                            -D"sonar.sources=." \
+                            -D"sonar.host.url=${SONAR_URL}" 
+                            -D"sonar.token=${SONAR_AUTH_TOKEN}"
+                        """
+                }
+            }
+        }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
         // Sends the test results to Bitbucket once the tests complete.
         stage('Tests') {
