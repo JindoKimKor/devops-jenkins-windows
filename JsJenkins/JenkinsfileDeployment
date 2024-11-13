@@ -84,7 +84,6 @@ pipeline {
                         env.COMMIT_HASH = generalUtil.getFullCommitHash(WORKSPACE, PR_COMMIT)
                         //env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
-
                     if (!fileExists("${PROJECT_DIR}")) {
                         echo "First time running pipeline. Cloning main branch..."
                         sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
@@ -159,7 +158,7 @@ pipeline {
                             "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
                             "-Dsonar.sources=. " +
                             "-Dsonar.host.url=${SONAR_URL} " +
-                            "-Dsonar.login=${SONAR_AUTH_TOKEN}"
+                            "-Dsonar.token=${SONAR_AUTH_TOKEN}"
                         }
                     }
                 }
