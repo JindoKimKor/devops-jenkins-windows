@@ -6,7 +6,9 @@ def jsUtil
 pipeline {
     agent any
 
-    tools {nodejs 'Node'}
+    tools {
+        nodejs 'Node'
+    }
 
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
@@ -110,18 +112,24 @@ pipeline {
         stage('Static Analysis'){
             environment{
                 SONARQUBE_SERVER="SonarServer"
+                SONARQUBE_SCANNER="sonarqube-scanner"
                 SONAR_PROJECT_KEY="Asset-store"
                 SONAR_URL="http://localhost:9000"
                 SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
             }
             steps {
-                withSonarQubeEnv(SONARQUBE_SERVER) {
-                    sh """
-                            sonar-scanner.bat -D"sonar.projectKey=${SONAR_PROJECT_KEY}" \
-                            -D"sonar.sources=." \
-                            -D"sonar.host.url=${SONAR_URL}" 
-                            -D"sonar.token=${SONAR_AUTH_TOKEN}"
-                        """
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        sh "pwd"
+                        def scannerHome = tool "sonarqube-scanner"
+                        withSonarQubeEnv(SONARQUBE_SERVER) {
+                            bat "${scannerHome}\\bin\\sonar-scanner.bat " +
+                            "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
+                            "-Dsonar.sources=. " +
+                            "-Dsonar.host.url=${SONAR_URL} " +
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN}"
+                        }
+                    }
                 }
             }
         }
