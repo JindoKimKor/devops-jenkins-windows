@@ -131,6 +131,18 @@ pipeline {
                         }
                     }
                 }
+                script{
+                    timeout(time: 1, unit: 'HOURS') {
+                        // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
+                            def qualityGate = waitForQualityGate()
+                            if(qualityGate.status != "OK"){
+                                error "SonarQube Quality Gate failed"
+                            }                            
+                        }
+                    }
+                }
             }
         }
         // Runs the project's EditMode tests, and then generates a test report and a code coverage report.

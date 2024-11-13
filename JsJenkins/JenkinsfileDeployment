@@ -141,6 +141,36 @@ pipeline {
                 }
             }
         }
+         // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
+        stage('Static Analysis'){
+            environment{
+                SONARQUBE_SERVER="SonarServer"
+                SONARQUBE_SCANNER="sonarqube-scanner"
+                SONAR_PROJECT_KEY="Asset-store"
+                SONAR_URL="http://localhost:9000"
+                SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
+            }
+            steps {
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        def scannerHome = tool "sonarqube-scanner"
+                        withSonarQubeEnv(SONARQUBE_SERVER) {
+                            bat "${scannerHome}\\bin\\sonar-scanner.bat " +
+                            "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
+                            "-Dsonar.sources=. " +
+                            "-Dsonar.host.url=${SONAR_URL} " +
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN}"
+                        }
+                    }
+                }
+                script{
+                    timeout(time: 1, unit: 'HOURS') {
+                        // Abort the pipeline for deployment
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+        }
         // Runs the project's EditMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
         // We do not want failing tests on main. 
         stage ('Tests') {
