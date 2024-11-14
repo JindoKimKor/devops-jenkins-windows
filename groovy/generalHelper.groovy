@@ -62,6 +62,9 @@ def checkoutBranch(String projectDir, String prBranch) {
         if (!branchExists) {
             error "Branch ${prBranch} does not exist locally or remotely."
         }
+        //Clean up before checkout
+        sh "git reset --hard"
+        //checkout
         sh "git checkout ${prBranch}"
     }
 }
