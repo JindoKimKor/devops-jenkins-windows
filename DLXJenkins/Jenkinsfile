@@ -70,7 +70,6 @@ pipeline {
                     generalUtil.cloneOrUpdateRepo(PROJECT_DIR, REPO_SSH, PR_BRANCH)
 
                     generalUtil.mergeBranchIfNeeded()
-                    generalUtil.checkoutBranch(PROJECT_DIR, PR_BRANCH) 
                 }
 
                 // Unity Setup: Identify the version of Unity Editor for the project
