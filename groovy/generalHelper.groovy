@@ -18,15 +18,9 @@ def cloneOrUpdateRepo(String projectDir, String repoSsh, String branch) {
                 sh "rm -f '.git/index.lock'"
                 sh "git fetch origin"
 
-                // Check if the branch exists remotely
-                def branchExists = sh(script: "git show-ref --verify --quiet refs/remotes/origin/${branch}", returnStatus: true) == 0
-                if (!branchExists) {
-                    error "Branch ${branch} does not exist in the remote repository."
-                }
-
-                // Reset and checkout the branch
-                sh "git checkout ${branch}"
-                sh "git reset --hard origin/${branch}"
+                // Check if the branch exist or not
+                // And then check out to the PR branch
+                checkoutBranch(projectDir, branch);
             }
         } else {
             echo "Invalid git repository. Cleaning up and cloning afresh..."
