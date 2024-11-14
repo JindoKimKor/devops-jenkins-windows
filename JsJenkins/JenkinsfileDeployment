@@ -158,7 +158,7 @@ pipeline {
                             "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
                             "-Dsonar.sources=. " +
                             "-Dsonar.host.url=${SONAR_URL} " +
-                            "-Dsonar.token=${SONAR_AUTH_TOKEN}"
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN}"
                         }
                     }
                 }
