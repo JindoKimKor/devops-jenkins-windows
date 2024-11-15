@@ -32,7 +32,8 @@ elif args['pr-status'] != "INPROGRESS":
     if not args['javascript']:
         build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/logs.html"
     else:
-        build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/Build-{build_number}/Linting-report/client-lint-results.html"
+        # build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/Build-{build_number}/Linting-report/client-lint-results.html"
+        build_url = f"https://jenkins.vconestoga.com/sonarqube/dashboard?id=Asset-store"
 else:
     build_url = os.getenv('BUILD_URL')
 
