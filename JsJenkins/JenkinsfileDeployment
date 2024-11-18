@@ -146,7 +146,7 @@ pipeline {
                 SONARQUBE_SERVER="SonarServer"
                 SONARQUBE_SCANNER="sonarqube-scanner"
                 SONAR_PROJECT_KEY="Asset-store"
-                SONAR_URL="http://localhost:9000"
+                SONAR_URL="http://localhost:9000/sonarqube"
                 SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
             }
             steps {
