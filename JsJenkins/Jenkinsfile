@@ -6,7 +6,9 @@ def jsUtil
 pipeline {
     agent any
 
-    tools {nodejs 'Node'}
+    tools {
+        nodejs 'Node'
+    }
 
     parameters {
         string(name: 'PR_BRANCH', defaultValue: '', description: '')
@@ -16,7 +18,7 @@ pipeline {
         string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
-        string(name: 'TEST_RUN', defaultValue: 'Y', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.') //Default value added while we build this pipeline
+        string(name: 'TEST_RUN', defaultValue: '', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.')
     }
 
     triggers {
@@ -102,6 +104,41 @@ pipeline {
                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
                         jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
                         generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
+                    }
+                }
+            }
+        }
+        // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
+        stage('Static Analysis'){
+            environment{
+                SONARQUBE_SERVER="SonarServer"
+                SONARQUBE_SCANNER="sonarqube-scanner"
+                SONAR_PROJECT_KEY="Asset-store"
+                SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
+            }
+            steps {
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        sh "pwd"
+                        def scannerHome = tool "sonarqube-scanner"
+                        withSonarQubeEnv(SONARQUBE_SERVER) {
+                            bat "${scannerHome}\\bin\\sonar-scanner.bat " +
+                            "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
+                            "-Dsonar.sources=. " +
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN} "
+                        }
+                    }
+                }
+                script{
+                    timeout(time: 1, unit: 'HOURS') {
+                        // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
+                            def qualityGate = waitForQualityGate()
+                            if(qualityGate.status != "OK"){
+                                error "SonarQube Quality Gate failed"
+                            }                            
+                        }
                     }
                 }
             }

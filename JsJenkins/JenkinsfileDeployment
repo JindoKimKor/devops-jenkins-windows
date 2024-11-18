@@ -84,7 +84,6 @@ pipeline {
                         env.COMMIT_HASH = generalUtil.getFullCommitHash(WORKSPACE, PR_COMMIT)
                         //env.COMMIT_HASH = "${sh (script: "git log -n 1 --pretty=format:\"%H\"", returnStdout: true)}"
                     }
-
                     if (!fileExists("${PROJECT_DIR}")) {
                         echo "First time running pipeline. Cloning main branch..."
                         sh "git clone ${REPO_SSH} \"${PROJECT_DIR}\""
@@ -138,6 +137,34 @@ pipeline {
                 script {
                     echo "Linting step"
                     jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, false) //* Set the deploymentBuild argument as "false" for now 
+                }
+            }
+        }
+         // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
+        stage('Static Analysis'){
+            environment{
+                SONARQUBE_SERVER="SonarServer"
+                SONARQUBE_SCANNER="sonarqube-scanner"
+                SONAR_PROJECT_KEY="Asset-store"
+                SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
+            }
+            steps {
+                dir ("${PROJECT_DIR}") {
+                    script {
+                        def scannerHome = tool "sonarqube-scanner"
+                        withSonarQubeEnv(SONARQUBE_SERVER) {
+                            bat "${scannerHome}\\bin\\sonar-scanner.bat " +
+                            "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
+                            "-Dsonar.sources=. " +
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN}"
+                        }
+                    }
+                }
+                script{
+                    timeout(time: 1, unit: 'HOURS') {
+                        // Abort the pipeline for deployment
+                        waitForQualityGate abortPipeline: true
+                    }
                 }
             }
         }
