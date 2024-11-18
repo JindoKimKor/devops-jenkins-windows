@@ -18,7 +18,7 @@ pipeline {
         string(name: 'PR_COMMIT', defaultValue: '', description: '')
         string(name: 'PR_PROJECT', defaultValue: '', description: '')
         string(name: 'PR_STATE', defaultValue: '', description: '')
-        string(name: 'TEST_RUN', defaultValue: 'Y', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.') //Default value added while we build this pipeline
+        string(name: 'TEST_RUN', defaultValue: '', description: 'This is a test run trigger. Fill in the parameter form with \'Y\' to run the pipeline without commit changes.')
     }
 
     triggers {
