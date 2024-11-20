@@ -123,7 +123,7 @@ def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploym
             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                 def lintCommand = "cd ${dirPath} && npx eslint src"
                 if (enableReporting) {
-                    lintCommand += " -f ${workspace}/eslint_formatter.cjs -o eslint_report.json"
+                    lintCommand += " -f json -o eslint_report.json"
                 }
                 def exitCode = bat(script: lintCommand, returnStatus: true)
 
