@@ -125,7 +125,8 @@ pipeline {
                             bat "${scannerHome}\\bin\\sonar-scanner.bat " +
                             "-Dsonar.projectKey=${SONAR_PROJECT_KEY} " +
                             "-Dsonar.sources=. " +
-                            "-Dsonar.login=${SONAR_AUTH_TOKEN} "
+                            "-Dsonar.login=${SONAR_AUTH_TOKEN} " +
+                            "-Dsonar.externalIssuesReportPaths=${PROJECT_DIR}\\server\\eslint_report_formatted.json, ${PROJECT_DIR}\\client-portual\\eslint_report_formatted.json"
                         }
                     }
                 }
