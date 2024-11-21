@@ -140,6 +140,20 @@ pipeline {
                 }
             }
         }
+        // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
+        // Sends the test results to Bitbucket once the tests complete.
+        stage('Unit Testing') {
+            steps {
+                script {
+                    echo "Unit testing step"
+                    echo 'Run unit testing in testing directories'
+                    jsUtil.runUnitTestsInTestingDirs(env.TEST_DIRECTORIES, false) //* Set the deploymentBuild argument as "false" for now 
+
+                    // Change back to default directory
+                    bat(script: 'cd "' + WORKSPACE + '"') 
+                }
+            }
+        }
          // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
         stage('Static Analysis'){
             environment{
@@ -165,15 +179,6 @@ pipeline {
                         // Abort the pipeline for deployment
                         waitForQualityGate abortPipeline: true
                     }
-                }
-            }
-        }
-        // Runs the project's EditMode tests. Unlike the PR pipeline, if any tests fail, this will cause the pipeline to fail.
-        // We do not want failing tests on main. 
-        stage ('Tests') {
-            steps {
-                script {
-                    echo "Testing step"
                 }
             }
         }

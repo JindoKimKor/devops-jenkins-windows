@@ -71,7 +71,34 @@ def installNpmInTestingDirs(testingDirs) {
     }
 }
 
+def runUnitTestsInTestingDirs(testingDirs, deploymentBuild) {
+    def testDirs = testingDirs.split(',')
+    if (testDirs) {
+        for (def dirPath : testDirs) {
+            // Check if directory exists
+            def dir = new File(dirPath)
+            if (!dir.exists() || !dir.isDirectory()) {
+                echo "Directory does not exist: ${dirPath}. Skipping..."
+                continue
+            }
+            echo "Currently working on ${dirPath} directory."
 
+            // Run unit testing with error handling
+            def npmCommand = "cd \"${dirPath}\" && npx jest --coverage"
+            echo "Running command: ${npmCommand}"
+            exitCode = runCommand(npmCommand) // Run jest unit testing
+            if (exitCode != 0) {
+                echo "npx jest failed with exit code: ${exitCode}."
+                if(deploymentBuild){
+                    error("npx jest failed with exit code: ${exitCode}. Aborting the deployment pipeline...")
+                }
+                continue
+            }
+        }
+    } else {
+        echo "Testing directories don't exist."
+    }
+}
 
 def checkNodeVersion(){
     // Cross-platform handling for Node and NPM checks
@@ -130,9 +157,9 @@ def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploym
                 if (exitCode == 0) {
                     echo "Linting completed successfully for \"${dirPath}\""
                 } else {
-                    echo "Linting failed in \"${dirPath}\" with exit code ${exitCode}."
+                    error ("Linting failed exit code ${exitCode}.")
                     if (deploymentBuild) {
-                        error("Linting failed with exit code ${exitCode}.")
+                        error("Linting failed with exit code ${exitCode}. Aborting the deployment pipeline...")
                     }
                 }
             }

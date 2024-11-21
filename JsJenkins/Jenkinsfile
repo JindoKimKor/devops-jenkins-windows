@@ -100,11 +100,26 @@ pipeline {
                 }
                 script {
                     echo "Linting step"
-                    //surrounded the whole block in catch error incase publishing fails
+                    jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
+
+                    // Surrounded the whole block in catch error incase publishing fails
                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                        jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
                         generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
                     }
+                }
+            }
+        }
+        // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
+        // Sends the test results to Bitbucket once the tests complete.
+        stage('Unit Testing') {
+            steps {
+                script {
+                    echo "Unit testing step"
+                    echo 'Run unit testing in testing directories'
+                    jsUtil.runUnitTestsInTestingDirs(env.TEST_DIRECTORIES, false)
+
+                    // Change back to default directory
+                    bat(script: 'cd "' + WORKSPACE + '"') 
                 }
             }
         }
@@ -140,24 +155,6 @@ pipeline {
                             }                            
                         }
                     }
-                }
-            }
-        }
-        // Runs the project's EditMode tests, and then generates a test report and a code coverage report.
-        // Sends the test results to Bitbucket once the tests complete.
-        stage('Tests') {
-            steps {
-                script {
-                    echo "Testing step"
-                }
-            }
-        }
-        // Merges the two coverage reports from the EditMode and PlayMode (editor) reports into one.
-        // Then sends a coverage report to Bitbucket.
-        stage('Generate Code Coverage Report') {
-            steps {
-                script {
-                    echo "Code Coverage step"
                 }
             }
         }
