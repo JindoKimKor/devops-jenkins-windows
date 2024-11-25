@@ -54,26 +54,35 @@ pipeline {
         // Prepare Workspace: Environment Setup, Workspace Preparation(Branch Management), Unity Setup, Initial running the project on Unity Editor
         stage('Prepare Workspace') {
             steps {
+                dir ("${PROJECT_DIR}") {
                 //send 'In Progress' status to Bitbucket
                 script {
                     // print jenkins env configurations
                     sh 'env'
                     generalUtil = load("${WORKSPACE}/groovy/generalHelper.groovy")
                     jsUtil = load("${WORKSPACE}/groovy/jsHelper.groovy")
-
+                    echo "validating commit hashes"
                     env.COMMIT_HASH = generalUtil.validateCommitHashes(WORKSPACE, PROJECT_DIR, PR_COMMIT, TEST_RUN)
                     echo env.COMMIT_HASH
+
+                    echo "initialize environment"
                     generalUtil.initializeEnvironment(WORKSPACE, env.COMMIT_HASH, PR_BRANCH, PROJECT_DIR)
 
+                    echo "clone Or Update Repo"
                     generalUtil.cloneOrUpdateRepo(PROJECT_DIR, REPO_SSH, PR_BRANCH)
 
+                    echo "merge Branch If Needed"
                     generalUtil.mergeBranchIfNeeded()
+
+                    echo "checkout Branch"
                     generalUtil.checkoutBranch(PROJECT_DIR, PR_BRANCH) 
 
                     // Save directories pipeline is going to test. unique to JS pipeline
+                    echo "find Testing Dirs"
                     env.TEST_DIRECTORIES = jsUtil.findTestingDirs(PROJECT_DIR)
                     echo "Testing directories: ${env.TEST_DIRECTORIES}"
-                } 
+                    } 
+                }
             }
         }
         stage('Install Dependencies'){
