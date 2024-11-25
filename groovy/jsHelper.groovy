@@ -148,9 +148,9 @@ def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploym
             echo "Currently working on ${dirName} directory."
 
             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                def lintCommand = "cd ${dirPath} && npm run lint"
+                def lintCommand = "cd ${dirPath} && npx eslint src"
                 if (enableReporting) {
-                    lintCommand += " -- -f html -o ${reportDir}/linting_results/${dirName}-lint-results.html > ${reportDir}/linting_results/${dirName}_linting_log.txt 2>&1"
+                    lintCommand += " -f json -o eslint-report.json"
                 }
                 def exitCode = bat(script: lintCommand, returnStatus: true)
 

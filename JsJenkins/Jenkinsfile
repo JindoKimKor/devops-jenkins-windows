@@ -101,11 +101,6 @@ pipeline {
                 script {
                     echo "Linting step"
                     jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, true, false)
-
-                    // Surrounded the whole block in catch error incase publishing fails
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                        generalUtil.publishTestResultsHtmlToWebServer(FOLDER_NAME, TICKET_NUMBER, "${REPORT_DIR}/linting_results", "Linting", BUILD_NUMBER)
-                    }
                 }
             }
         }
