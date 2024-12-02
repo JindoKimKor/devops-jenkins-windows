@@ -40,6 +40,12 @@ pipeline {
         JOB_REPO = "${PR_REPO_HTML}"
         BITBUCKET_ACCESS_TOKEN = credentials('bitbucket-access-token')
         DESTINATION_BRANCH = "${PR_DESTINATION_BRANCH}"
+
+        // Environmental variables for static analysis
+        SONARQUBE_SERVER="SonarServer"
+        SONARQUBE_SCANNER="sonarqube-scanner"
+        SONAR_PROJECT_KEY="${env.JOB_NAME.split('/')[0]}-Deployment"
+        SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
     }
 
     stages {
@@ -136,7 +142,7 @@ pipeline {
                 }
                 script {
                     echo "Linting step"
-                    jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, REPORT_DIR, false, false) //* Set the deploymentBuild argument as "false" for now 
+                    jsUtil.executeLintingInTestingDirs(env.TEST_DIRECTORIES, false) //* Set the deploymentBuild argument as "false" for now 
                 }
             }
         }
@@ -156,12 +162,6 @@ pipeline {
         }
          // Runs static code analysis using SonarQube installed in Jenkins virtual machine. 
         stage('Static Analysis'){
-            environment{
-                SONARQUBE_SERVER="SonarServer"
-                SONARQUBE_SCANNER="sonarqube-scanner"
-                SONAR_PROJECT_KEY="Asset-store"
-                SONAR_AUTH_TOKEN="squ_8f0b6b1b3cfd5f621b1ff21a836a569ee9d4cf75"
-            }
             steps {
                 dir ("${PROJECT_DIR}") {
                     script {

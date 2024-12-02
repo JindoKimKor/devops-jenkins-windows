@@ -11,6 +11,7 @@ parser.add_argument("pr-status", choices=['SUCCESSFUL', 'FAILED', 'STOPPED', 'IN
 parser.add_argument("-d", "--deployment", action='store_true', help="Flag to use if we are updating a deployment build status.")
 parser.add_argument("-js", "--javascript",action='store_true', help="An optional argument to set the different build_url.")
 parser.add_argument("-desc", "--description", help="An optional argument for adding additional information to the build description.")
+parser.add_argument("-key", "--projeckey", help="An argument for sonarqube project key.")
 args = vars(parser.parse_args())
 
 # Environment variables:
@@ -18,25 +19,28 @@ access_token = os.getenv('BITBUCKET_ACCESS_TOKEN')
 pr_repo = os.getenv('JOB_REPO')
 build_id = os.getenv('BUILD_ID')
 ticket = os.getenv('TICKET_NUMBER')
-folder_name = os.getenv('FOLDER_NAME')
 build_number = os.getenv('BUILD_NUMBER')
+folder_path = os.getenv('JOB_NAME')
+
+if folder_path:
+    folder_path_parts = folder_path.split('/')
+    job_name = folder_path_parts[-1]
+    folder_name = '/'.join(folder_path_parts[:-1]) if len(folder_path_parts) > 1 else ''
+
 
 # Global variables:
 url = f'{pr_repo}/commit/{args["pr-commit"]}/statuses/build'
 description = f"{args['pr-status']}: {args['description']}" if (args['description'] != None) else args['pr-status']
+sonar_project_key = args['projeckey'] if (args['projeckey'] != None) else None
 
 # No need to change argument parsing since `action='store_true'` handles boolean values
-if args['pr-status'] == "SUCCESSFUL" and args['deployment']:
-    build_url = f"https://webdlx.vconestoga.com/{folder_name}"
-elif args['pr-status'] != "INPROGRESS":
-    if not args['javascript']:
-        build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/logs.html"
-    else:
-        # build_url = f"https://webdlx.vconestoga.com/{folder_name}/Reports/{ticket}/Build-{build_number}/Linting-report/client-lint-results.html"
-        build_url = f"https://jenkins.vconestoga.com/sonarqube/dashboard?id=Asset-store"
+if args['pr-status'] == "INPROGRESS":
+    build_url = f"https://jenkins.vconestoga.com/blue/organizations/jenkins/{folder_name}%2F{job_name}/detail/{job_name}/{build_number}/pipeline/"
 else:
-    build_url = os.getenv('BUILD_URL')
-
+    if not args['javascript']:
+        build_url = f"https://webdlx.vconestoga.com/{folder_path}/Reports/{ticket}/logs.html"
+    else:
+        build_url = f"https://jenkins.vconestoga.com/sonarqube/dashboard?id={sonar_project_key}"
 
 headers = {
     "Accept": "application/json",

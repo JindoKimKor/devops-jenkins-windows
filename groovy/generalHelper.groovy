@@ -156,7 +156,7 @@ def sendBuildStatus(workspace, state, commitHash, deployment = false, javascript
             pythonCommand += " -d"
         }
         if (javascript) {
-            pythonCommand += " -js"
+            pythonCommand += " -js -key ${env.SONAR_PROJECT_KEY}"
         }
         echo "Executing build status update: ${pythonCommand}"
         def exitCode = sh(script: pythonCommand, returnStatus: true)

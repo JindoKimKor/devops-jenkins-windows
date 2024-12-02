@@ -139,7 +139,7 @@ def isWindows() {
     return System.properties['os.name'].toLowerCase().contains('windows')
 }
 
-def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploymentBuild) {
+def executeLintingInTestingDirs(testingDirs, deploymentBuild) {
     def testDirs = testingDirs.split(',')
 
     if (testDirs) {
@@ -148,10 +148,7 @@ def executeLintingInTestingDirs(testingDirs, reportDir, enableReporting, deploym
             echo "Currently working on ${dirName} directory."
 
             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                def lintCommand = "cd ${dirPath} && npx eslint src"
-                if (enableReporting) {
-                    lintCommand += " -f json -o eslint-report.json"
-                }
+                def lintCommand = "cd ${dirPath} && npx eslint src -f json -o eslint-report.json"
                 def exitCode = bat(script: lintCommand, returnStatus: true)
 
                 if (exitCode == 0) {
