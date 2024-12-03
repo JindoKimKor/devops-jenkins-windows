@@ -2,7 +2,7 @@ def editMode = "EditMode"
 def playMode = "PlayMode"
 def generalUtil
 def unityUtil
-def main = "main"
+def mainBranches = ["main", "master"]
 
 
 pipeline {
@@ -53,7 +53,7 @@ pipeline {
             steps {
                 script {
                     // Aborts the pipeline if it's not merging into the main.
-                    if(!env.DESTINATION_BRANCH.equals(main)){
+                    if(!mainBranches.contains(DESTINATION_BRANCH)){
                         env.FAILURE_REASON = "Not merging to the main branch. Exiting the pipeline..."
                         currentBuild.result = 'ABORTED'
                         error(env.FAILURE_REASON)
@@ -98,7 +98,7 @@ pipeline {
                 dir ("${PROJECT_DIR}") {
                     // Ensure it stays in the main branch
                     echo "Checkout to the main branch..."
-                    sh "git checkout ${main}"
+                    sh "git checkout ${DESTINATION_BRANCH}"
                     echo "Cleaning project..."
                     sh "git reset --hard HEAD"
                     echo "Pulling latest version of default branch..."

@@ -80,9 +80,6 @@ pipeline {
                     echo "merge Branch If Needed"
                     generalUtil.mergeBranchIfNeeded()
 
-                    echo "checkout Branch"
-                    generalUtil.checkoutBranch(PROJECT_DIR, PR_BRANCH) 
-
                     // Save directories pipeline is going to test. unique to JS pipeline
                     echo "find Testing Dirs"
                     env.TEST_DIRECTORIES = jsUtil.findTestingDirs(PROJECT_DIR)

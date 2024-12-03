@@ -17,6 +17,7 @@ def cloneOrUpdateRepo(String projectDir, String repoSsh, String branch) {
                 // Remove lock file if it exists
                 sh "rm -f '.git/index.lock'"
                 sh "git fetch origin"
+                sh "git pull"
 
                 // Check if the branch exist or not
                 // And then check out to the PR branch
