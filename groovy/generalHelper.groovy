@@ -14,14 +14,21 @@ def cloneOrUpdateRepo(String projectDir, String repoSsh, String branch) {
         if (new File("${projectDir}/.git").exists()) {
             echo "Project already exists. Fetching latest changes..."
             dir(projectDir) {
+                echo "Current branch before checkout:"
+                sh "git branch --show-current"
+
                 // Remove lock file if it exists
                 sh "rm -f '.git/index.lock'"
                 sh "git fetch origin"
-                sh "git pull"
 
                 // Check if the branch exist or not
                 // And then check out to the PR branch
                 checkoutBranch(projectDir, branch);
+
+                echo "Current branch after checkout:"
+                sh "git branch --show-current"
+
+                sh "git pull"
             }
         } else {
             echo "Invalid git repository. Cleaning up and cloning afresh..."

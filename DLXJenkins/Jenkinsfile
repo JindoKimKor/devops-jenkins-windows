@@ -202,6 +202,10 @@ pipeline {
                         unityUtil.buildProject(REPORT_DIR, PROJECT_DIR, UNITY_EXECUTABLE)
                     }
                 }
+                script{
+                    echo "Returning to the main branch..."
+                    generalUtil.checkoutBranch(PROJECT_DIR, DESTINATION_BRANCH);
+                }
             }
         }
     }

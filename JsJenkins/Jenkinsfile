@@ -164,6 +164,9 @@ pipeline {
             steps {
                 script {
                     echo "Build Step"
+
+                    echo "Returning to the main branch..."
+                    generalUtil.checkoutBranch(PROJECT_DIR, DESTINATION_BRANCH);
                 }
             }
         }
