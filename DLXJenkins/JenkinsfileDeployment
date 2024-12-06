@@ -62,12 +62,7 @@ pipeline {
                     generalUtil = load("${WORKSPACE}/groovy/generalHelper.groovy")
                     unityUtil = load("${WORKSPACE}/groovy/unityHelper.groovy")
 
-                    def branch_path = sh (script: "/usr/bin/find ../ -type d -name \"${PR_BRANCH}\"", returnStdout: true)
-                    branch_path = branch_path.trim()
-                    if(!branch_path.isEmpty()){
-                        sh "rm -r -f \"${branch_path}\""
-                        sh "rm -r -f \"${branch_path}@tmp\""
-                    }
+                    generalUtil.cleanUpPRBranch(PR_BRANCH) 
 
                     env.FOLDER_NAME = "${JOB_NAME}".split('/').first()
                     def ticketNumber = generalUtil.parseTicketNumber(PR_BRANCH)

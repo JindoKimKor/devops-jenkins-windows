@@ -212,4 +212,64 @@ def cleanMergedBranchReportsFromWebServer(remoteProjectFolderName, ticketNumber)
     \"sudo rm -r -f /var/www/html/${remoteProjectFolderName}/Reports/${ticketNumber}\""""
 }
 
+def cleanUpPRBranch(String prBranch) {
+    // Find the branch path
+    def branchPath = sh(script: "/usr/bin/find ../ -type d -name \"${prBranch}\"", returnStdout: true).trim()
+
+    if (!branchPath.isEmpty()) {
+        // Print the path of branch path trying to delete
+        echo "Branch Path: ${branchPath}"
+
+        // Extract the second-level directory name
+        // example branch path: "../PR-Pipeline-test/PRJob/DevOps_Test"
+        // "dirname" script eliminates the last element     >> "../PR-Pipeline-test/PRJob"
+        // "dirname" script eliminates the last element     >> "../PR-Pipeline-test"
+        // "basename" script extracts only the last element >> "PR-Pipeline-test"
+        def prJobDirName = sh(script: "basename \$(dirname \$(dirname \"${branchPath}\"))", returnStdout: true).trim()
+
+        if (!prJobDirName.isEmpty()) {
+            // Print the extracted name
+            echo "PR-Pipeline Name: ${prJobDirName}"
+
+            // Check whether there are open files in the target directory
+            def openFiles = bat(script: "handle.exe ${prJobDirName}", returnStdout: true).trim()
+        
+            if (!openFiles.isEmpty()) {
+                echo "Open files found in the directory: ${branchPath}"
+                echo "List of opened files:"
+                echo "${openFiles}"
+
+                // Extract unique PIDs from the open files
+                // 1. Extract PID list for each line
+                // 2. Extract only lines that contain "pid" from the extracted lines
+                // 3. Recursively find all elements in the extracted string that contain "pid:" followed by a space " " and then a "number"
+                //      >> Exclude the elements which have 'explorer.exe'. It should not be terminated
+                // 4. If matching succeeds, returns PID, otherwise null
+                def pids = openFiles.split('\n').findAll { it.contains('pid:') && !it.contains('explorer.exe') }.collect { line ->
+                    def match = line =~ /pid:\s+(\d+)/
+                    return match ? match[0][1] : null
+                }.unique()
+
+                // Print the PIDs
+                echo "Found PIDs: ${pids}"
+
+                // Forcefully terminate the processes
+                pids.each { pid -> 
+                    if (pid) { 
+                        bat(script: "taskkill /PID ${pid} /F") 
+                        echo "Terminated PID: ${pid}" 
+                    } 
+                }
+
+            } else {
+                echo "No open files found in the directory: ${branchPath}"
+            }
+
+            // Clean up the PRJob/{PR_BRANCH} directory
+            sh "rm -r -f \"${branchPath}\""
+            sh "rm -r -f \"${branchPath}@tmp\""
+        }
+    }
+}
+
 return this
