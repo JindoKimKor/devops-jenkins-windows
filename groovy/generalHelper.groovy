@@ -220,19 +220,9 @@ def cleanUpPRBranch(String prBranch) {
         // Print the path of branch path trying to delete
         echo "Branch Path: ${branchPath}"
 
-        // Extract the second-level directory name
-        // example branch path: "../PR-Pipeline-test/PRJob/DevOps_Test"
-        // "dirname" script eliminates the last element     >> "../PR-Pipeline-test/PRJob"
-        // "dirname" script eliminates the last element     >> "../PR-Pipeline-test"
-        // "basename" script extracts only the last element >> "PR-Pipeline-test"
-        def prJobDirName = sh(script: "basename \$(dirname \$(dirname \"${branchPath}\"))", returnStdout: true).trim()
-
-        if (!prJobDirName.isEmpty()) {
-            // Print the extracted name
-            echo "PR-Pipeline Name: ${prJobDirName}"
-
+        try{
             // Check whether there are open files in the target directory
-            def openFiles = bat(script: "handle.exe ${prJobDirName}", returnStdout: true).trim()
+            def openFiles = bat(script: "handle.exe ${prBranch}", returnStdout: true).trim()
         
             if (!openFiles.isEmpty()) {
                 echo "Open files found in the directory: ${branchPath}"
@@ -245,30 +235,59 @@ def cleanUpPRBranch(String prBranch) {
                 // 3. Recursively find all elements in the extracted string that contain "pid:" followed by a space " " and then a "number"
                 //      >> Exclude the elements which have 'explorer.exe'. It should not be terminated
                 // 4. If matching succeeds, returns PID, otherwise null
-                def pids = openFiles.split('\n').findAll { it.contains('pid:') && !it.contains('explorer.exe') }.collect { line ->
+                def pids = openFiles.split('\n').findAll { it.contains('pid:') && !it.contains('explorer.exe')  && it.contains("${prBranch}")}.collect { line ->
                     def match = line =~ /pid:\s+(\d+)/
                     return match ? match[0][1] : null
                 }.unique()
 
                 // Print the PIDs
-                echo "Found PIDs: ${pids}"
+                echo "List of PIDs of open log files at the \"${prBranch}\": ${pids}"
 
                 // Forcefully terminate the processes
                 pids.each { pid -> 
                     if (pid) { 
-                        bat(script: "taskkill /PID ${pid} /F") 
-                        echo "Terminated PID: ${pid}" 
-                    } 
+                        // Check whether the target PID still exists or not
+                        // This PowerShell script combines two operations:
+                        // 1. Get process information by PID using 'Get-Process'
+                        //    >> If no process is associated with the specified PID, it returns nothing because of the "-ErrorAction SilentlyContinue" flag
+                        // 2. Extract the PID from the 'Get-Process' result
+                        //    >> The output of 'Get-Process' is passed through the pipeline ('|')
+                        //    >> The 'Id' property is extracted from the current object ('$_'), which is provided by the 'Get-Process' result
+                        // 
+                        // Therefore:
+                        // - If the process associated with the specified PID exists, this script will return the PID (e.g., "0000")
+                        // - If no process is associated with the specified PID, the script will return an empty result
+                        echo "Checking whether the target PID still exists or not..."
+                        def pidExists = bat(script: 'powershell -Command "Get-Process -Id ${pid} -ErrorAction SilentlyContinue | ForEach-Object { $_.Id }"', returnStdout: true).trim()
+
+                        if (!pidExists.isEmpty()) {
+                            // Terminate the process using pid
+                            echo "PID ${pid} exists. Proceeding to terminate."
+                            bat(script: "taskkill /PID ${pid} /F") 
+                            echo "Terminated PID: ${pid}" 
+                        } else {
+                            echo "PID ${pid} does not exist. Skipping termination."
+                        }
+                    }
                 }
-
-            } else {
-                echo "No open files found in the directory: ${branchPath}"
-            }
-
-            // Clean up the PRJob/{PR_BRANCH} directory
-            sh "rm -r -f \"${branchPath}\""
-            sh "rm -r -f \"${branchPath}@tmp\""
+            } 
         }
+        catch (Exception e){
+            echo "Command failed with error: ${e.message}"
+            if (e.message.contains("script returned exit code 1")) {
+                // This part will be executed if there is no open file at the target PR directory
+                echo "Exit code 1 detected. Likely 'No matching handles found'."
+                echo "No open files found in the directory: ${branchPath} Proceeding."
+            } else {
+                throw e // Unexpected Error
+            }
+        }
+        
+
+        // Clean up the PRJob/{PR_BRANCH} directory
+        sh "rm -r -f \"${branchPath}\""
+        sh "rm -r -f \"${branchPath}@tmp\""
+        
     }
 }
 
