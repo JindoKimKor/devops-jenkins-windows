@@ -30,4 +30,5 @@ match args["value"]:
     case "revision":
         sys.stdout.write(f"{revision}")
     case "executable-path":
-        sys.stdout.write(f"C:/Program Files/Unity/Hub/Editor/{version}/Editor/Unity.exe")
+        # sys.stdout.write(f"C:/Program Files/Unity/Hub/Editor/{version}/Editor/Unity.exe")
+        sys.stdout.write(f"/home/jenkins-ubuntu-dev-test/Unity/Hub/Editor/{version}/Editor/Unity")
