@@ -141,7 +141,7 @@ def buildProject(reportDir, projectDir, unityExecutable) {
 // Creates a log report for Unity logs and Jenkins logs, then publishes it to the web server,
 // and lastly sends the build status to Bitbucket.
 def postBuild(status) {
-    sh "python -u \'${env.WORKSPACE}/python/create_log_report.py\'"
+    // sh "python -u \'${env.WORKSPACE}/python/create_log_report.py\'"
 
     sh """ssh vconadmin@dlx-webhost.canadacentral.cloudapp.azure.com \
     \"sudo mkdir -p /var/www/html/${env.FOLDER_NAME}/Reports/${env.TICKET_NUMBER} \
