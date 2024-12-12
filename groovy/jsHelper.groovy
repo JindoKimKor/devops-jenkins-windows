@@ -84,9 +84,9 @@ def runUnitTestsInTestingDirs(testingDirs, deploymentBuild) {
             echo "Currently working on ${dirPath} directory."
 
             // Run unit testing with error handling
-            def npmCommand = "cd \"${dirPath}\" && npx jest --coverage"
-            echo "Running command: ${npmCommand}"
-            exitCode = runCommand(npmCommand) // Run jest unit testing
+            def testCommand = "cd \"${dirPath}\" && npm run test"
+            echo "Running command: ${testCommand}"
+            exitCode = runCommand(testCommand) // Run jest unit testing
             if (exitCode != 0) {
                 echo "npx jest failed with exit code: ${exitCode}."
                 if(deploymentBuild){
@@ -148,7 +148,7 @@ def executeLintingInTestingDirs(testingDirs, deploymentBuild) {
             echo "Currently working on ${dirName} directory."
 
             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                def lintCommand = "cd ${dirPath} && npx eslint src -f json -o eslint-report.json"
+                def lintCommand = "cd ${dirPath} && npm run lint"
                 def exitCode = bat(script: lintCommand, returnStatus: true)
 
                 if (exitCode == 0) {
