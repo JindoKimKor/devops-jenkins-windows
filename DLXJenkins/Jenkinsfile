@@ -214,19 +214,19 @@ pipeline {
     post {
         success {
             script {
-                unityUtil.postBuild("SUCCESSFUL")
+                // unityUtil.postBuild("SUCCESSFUL")
                 generalUtil.sendBuildStatus(env.WORKSPACE, "SUCCESSFUL", env.COMMIT_HASH)
             }
         }
         failure {
             script {
-                unityUtil.postBuild("FAILED")
+                // unityUtil.postBuild("FAILED")
                 generalUtil.sendBuildStatus(env.WORKSPACE, "FAILED", env.COMMIT_HASH)
             }
         }
         aborted {
             script {
-                unityUtil.postBuild("STOPPED")
+                // unityUtil.postBuild("STOPPED")
                 generalUtil.sendBuildStatus(env.WORKSPACE, "STOPPED", env.COMMIT_HASH)
             }
         }
