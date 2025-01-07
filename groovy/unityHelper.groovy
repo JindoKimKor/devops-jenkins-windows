@@ -70,15 +70,15 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         -testPlatform ${testType} \
         -runTests \
         -logFile \"${logFile}\"${reportSettings}"
- 
+
     // Allows only PlayMode to run with graphics enabled
     if(testType == "EditMode"){
         flags += " -nographics"
     }
- 
+
     if(testType == "PlayMode"){
         flags += " -testCategory BuildServer"
-        unityExecutable = "xvfb-run -a ${unityExecutable}"
+        unityExecutable = "/usr/bin/xvfb-run -a ${unityExecutable}"
     }
     echo "------------------------------------------------"
     echo "Unity Executable: ${unityExecutable}"
@@ -88,7 +88,7 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
 
     def exitCode = sh (script: """\"${unityExecutable}\" \
         ${flags}""", returnStatus: true)
- 
+
     if ((exitCode != 0)) {
         if(deploymentBuild){
             error("Test failed with exit code ${exitCode}. Check the log file for more details.")
