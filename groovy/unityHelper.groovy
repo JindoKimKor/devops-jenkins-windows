@@ -80,10 +80,12 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
         flags += " -testCategory BuildServer"
         unityExecutable = "xvfb-run -a ${unityExecutable}"
     }
-
+    echo "------------------------------------------------"
     echo "Unity Executable: ${unityExecutable}"
+    echo "------------------------------------------------"
     echo "Flags set to: ${flags}"
- 
+    echo "------------------------------------------------"
+
     def exitCode = sh (script: """\"${unityExecutable}\" \
         ${flags}""", returnStatus: true)
  
