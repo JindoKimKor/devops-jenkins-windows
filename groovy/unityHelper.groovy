@@ -78,6 +78,7 @@ def runUnityTests(unityExecutable, reportDir, projectDir, testType, enableReport
  
     if(testType == "PlayMode"){
         flags += " -testCategory BuildServer"
+        unityExecutable = "xvfb-run -a ${unityExecutable}"
     }
  
     echo "Flags set to: ${flags}"
